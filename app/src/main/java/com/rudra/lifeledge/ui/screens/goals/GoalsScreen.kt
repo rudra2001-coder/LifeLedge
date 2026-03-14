@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
+
 
 data class GoalsUiState(
     val activeGoals: List<Goal> = emptyList(),
@@ -35,11 +37,13 @@ data class GoalsUiState(
     val isLoading: Boolean = true
 )
 
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalsScreen(
     navController: NavController,
-    viewModel: GoalsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: GoalsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -218,7 +222,9 @@ fun EmptyStateCard(message: String) {
     }
 }
 
-class GoalsViewModel : ViewModel() {
+class GoalsViewModel(
+    private val goalRepository: GoalRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(GoalsUiState())
     val uiState: StateFlow<GoalsUiState> = _uiState.asStateFlow()
 
@@ -228,11 +234,25 @@ class GoalsViewModel : ViewModel() {
 
     fun loadData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                activeGoals = emptyList(),
-                completedGoals = emptyList(),
-                isLoading = false
-            )
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            launch {
+                goalRepository.getActiveGoals().collect { active ->
+                    _uiState.value = _uiState.value.copy(
+                        activeGoals = active,
+                        isLoading = false
+                    )
+                }
+            }
+
+            launch {
+                goalRepository.getCompletedGoals().collect { completed ->
+                    _uiState.value = _uiState.value.copy(
+                        completedGoals = completed,
+                        isLoading = false
+                    )
+                }
+            }
         }
     }
 

@@ -19,8 +19,10 @@ import java.time.format.DateTimeFormatter
 data class DashboardUiState(
     val lifeScore: Int = 0,
     val netBalance: Double = 0.0,
+    val savingsBalance: Double = 0.0,
     val monthlyIncome: Double = 0.0,
     val monthlyExpense: Double = 0.0,
+    val monthlySaved: Double = 0.0,
     val savingsRate: Double = 0.0,
     val weeklyWorkHours: Double = 0.0,
     val workLifeBalance: Int = 0,
@@ -55,40 +57,93 @@ class DashboardViewModel(
                 val monthEnd = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val weekStart = today.minusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-                // Load financial data
-                val income = financeRepository?.getTotalIncome(monthStart, monthEnd) ?: 0.0
-                val expense = financeRepository?.getTotalExpense(monthStart, monthEnd) ?: 0.0
-                val balance = financeRepository?.getTotalBalance()?.firstOrNull() ?: 0.0
-                val savingsRate = if (income > 0) ((income - expense) / income) * 100 else 0.0
-
                 // Load work data
-                val weeklyHours = workRepository?.getTotalWorkHours(weekStart, monthEnd) ?: 0.0
+                val weeklyHours = workRepository.getTotalWorkHours(weekStart, monthEnd)
 
-                // Load goals
-                goalRepository?.getActiveGoals()?.collect { goals ->
-                    val goalUis = goals.take(5).map { goal ->
-                        GoalUi(
-                            id = goal.id,
-                            title = goal.title,
-                            current = goal.currentValue,
-                            target = goal.targetValue,
-                            unit = goal.unit,
-                            color = goal.color
-                        )
-                    }
-                    _uiState.value = _uiState.value.copy(activeGoals = goalUis)
-                }
+                // Load habit data
+                val activeHabitsTotal = habitRepository.getActiveHabits().firstOrNull()?.size ?: 0
+                val habitsCompleted = habitRepository.getCompletionsForDate(today.format(DateTimeFormatter.ISO_LOCAL_DATE)).firstOrNull()?.size ?: 0
 
                 _uiState.value = _uiState.value.copy(
-                    lifeScore = calculateLifeScore(),
-                    netBalance = balance,
-                    monthlyIncome = income,
-                    monthlyExpense = expense,
-                    savingsRate = savingsRate,
                     weeklyWorkHours = weeklyHours,
                     workLifeBalance = calculateWorkLifeBalance(weeklyHours),
+                    activeHabits = activeHabitsTotal,
+                    habitsCompletedToday = habitsCompleted,
                     isLoading = false
                 )
+
+                // Reactive balance calculations - Money Flow Model
+                // Net Balance = Income - Expense - Saved + TransferredFromSavings
+                launch {
+                    financeRepository.getNetBalance().collect { balance ->
+                        _uiState.value = _uiState.value.copy(netBalance = balance)
+                        _uiState.value = _uiState.value.copy(lifeScore = calculateLifeScore())
+                    }
+                }
+
+                // Monthly Income
+                launch {
+                    financeRepository.getMonthlyIncome(monthStart, monthEnd).collect { income ->
+                        _uiState.value = _uiState.value.copy(monthlyIncome = income)
+                    }
+                }
+
+                // Monthly Expense
+                launch {
+                    financeRepository.getMonthlyExpense(monthStart, monthEnd).collect { expense ->
+                        _uiState.value = _uiState.value.copy(monthlyExpense = expense)
+                        val income = _uiState.value.monthlyIncome
+                        val savingsRate = if (income > 0) ((income - expense) / income) * 100 else 0.0
+                        _uiState.value = _uiState.value.copy(savingsRate = savingsRate)
+                    }
+                }
+
+                // Savings Balance = Total Saved - Total Transferred From Savings
+                launch {
+                    financeRepository.getSavingsBalance().collect { savings ->
+                        _uiState.value = _uiState.value.copy(savingsBalance = savings)
+                    }
+                }
+
+                // Monthly Saved
+                launch {
+                    financeRepository.getMonthlySaved(monthStart, monthEnd).collect { saved ->
+                        _uiState.value = _uiState.value.copy(monthlySaved = saved)
+                    }
+                }
+
+                launch {
+                    financeRepository.getRecentTransactions(5).collect { txs ->
+                        val txUis = txs.map { tx ->
+                            TransactionUi(
+                                id = tx.id,
+                                category = "Transaction",
+                                amount = tx.amount,
+                                date = tx.date,
+                                isExpense = tx.type == TransactionType.EXPENSE
+                            )
+                        }
+                        _uiState.value = _uiState.value.copy(recentTransactions = txUis)
+                    }
+                }
+
+                launch {
+                    goalRepository.getActiveGoals().collect { goals ->
+                        val goalUis = goals.take(5).map { goal ->
+                            GoalUi(
+                                id = goal.id,
+                                title = goal.title,
+                                current = goal.currentValue,
+                                target = goal.targetValue,
+                                unit = goal.unit,
+                                color = goal.color
+                            )
+                        }
+                        _uiState.value = _uiState.value.copy(activeGoals = goalUis)
+                        _uiState.value = _uiState.value.copy(lifeScore = calculateLifeScore())
+                    }
+                }
+
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }

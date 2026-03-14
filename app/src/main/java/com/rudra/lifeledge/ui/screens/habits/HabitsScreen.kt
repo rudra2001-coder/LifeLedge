@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import org.koin.androidx.compose.koinViewModel
 
 data class HabitsUiState(
     val habits: List<Habit> = emptyList(),
@@ -43,7 +44,7 @@ data class HabitsUiState(
 @Composable
 fun HabitsScreen(
     navController: NavController,
-    viewModel: HabitsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: HabitsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -259,7 +260,9 @@ fun EmptyStateCard(message: String) {
     }
 }
 
-class HabitsViewModel : ViewModel() {
+class HabitsViewModel(
+    private val habitRepository: HabitRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(HabitsUiState())
     val uiState: StateFlow<HabitsUiState> = _uiState.asStateFlow()
 
@@ -268,12 +271,26 @@ class HabitsViewModel : ViewModel() {
     }
 
     fun loadData() {
+        val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                habits = emptyList(),
-                todayCompletions = listOf(1L, 2L, 3L, 4L, 5L),
-                isLoading = false
-            )
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            launch {
+                habitRepository.getActiveHabits().collect { habits ->
+                    _uiState.value = _uiState.value.copy(
+                        habits = habits,
+                        isLoading = false
+                    )
+                }
+            }
+
+            launch {
+                habitRepository.getCompletionsForDate(todayStr).collect { completions ->
+                    _uiState.value = _uiState.value.copy(
+                        todayCompletions = completions.map { it.habitId }
+                    )
+                }
+            }
         }
     }
 
@@ -282,12 +299,21 @@ class HabitsViewModel : ViewModel() {
     }
 
     fun toggleHabitCompletion(habit: Habit) {
-        val currentCompletions = _uiState.value.todayCompletions.toMutableList()
-        if (currentCompletions.contains(habit.id)) {
-            currentCompletions.remove(habit.id)
-        } else {
-            currentCompletions.add(habit.id)
+        val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        viewModelScope.launch {
+            val existingCompletion = habitRepository.getCompletionForDate(habit.id, todayStr)
+            if (existingCompletion != null) {
+                habitRepository.deleteHabitCompletion(existingCompletion)
+            } else {
+                val newCompletion = HabitCompletion(
+                    habitId = habit.id,
+                    date = todayStr,
+                    value = 1.0,
+                    notes = null,
+                    synced = false
+                )
+                habitRepository.saveHabitCompletion(newCompletion)
+            }
         }
-        _uiState.value = _uiState.value.copy(todayCompletions = currentCompletions)
     }
 }

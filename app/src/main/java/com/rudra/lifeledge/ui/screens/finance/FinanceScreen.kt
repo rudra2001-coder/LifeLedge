@@ -24,6 +24,7 @@ import com.rudra.lifeledge.data.local.entity.Account
 import com.rudra.lifeledge.data.local.entity.Transaction
 import com.rudra.lifeledge.data.local.entity.TransactionType
 import com.rudra.lifeledge.data.repository.FinanceRepository
+import com.rudra.lifeledge.ui.screens.savings.EmptyStateCard
 import com.rudra.lifeledge.ui.theme.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -103,6 +104,81 @@ fun FinanceScreen(
                 1 -> TransactionsTab(transactions = uiState.transactions)
                 2 -> BudgetTab()
             }
+        }
+    }
+}
+
+@Composable
+fun QuickActionsRow(
+    onIncomeClick: () -> Unit,
+    onExpenseClick: () -> Unit,
+    onSavingsClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        QuickActionChip(
+            icon = Icons.Default.Add,
+            label = "Income",
+            color = Success,
+            onClick = onIncomeClick,
+            modifier = Modifier.weight(1f)
+        )
+        QuickActionChip(
+            icon = Icons.Default.Remove,
+            label = "Expense",
+            color = Error,
+            onClick = onExpenseClick,
+            modifier = Modifier.weight(1f)
+        )
+        QuickActionChip(
+            icon = Icons.Default.Savings,
+            label = "Savings",
+            color = Secondary,
+            onClick = onSavingsClick,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun QuickActionChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .height(56.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.15f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
         }
     }
 }
@@ -289,6 +365,8 @@ fun TransactionItem(transaction: Transaction) {
                         TransactionType.EXPENSE -> Icons.Default.ArrowDownward
                         TransactionType.INCOME -> Icons.Default.ArrowUpward
                         TransactionType.TRANSFER -> Icons.Default.SwapHoriz
+                        TransactionType.SAVE -> Icons.Default.Savings
+                        TransactionType.TRANSFER_FROM_SAVING -> Icons.Default.AccountBalance
                     },
                     contentDescription = null,
                     tint = if (transaction.type == TransactionType.EXPENSE) Error else Success

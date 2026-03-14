@@ -1,5 +1,6 @@
 package com.rudra.lifeledge.ui.screens.dashboard
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +29,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var isFabExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -53,6 +55,15 @@ fun DashboardScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
+            )
+        },
+        floatingActionButton = {
+            ExpandableFab(
+                expanded = isFabExpanded,
+                onExpandedChange = { isFabExpanded = it },
+                onIncomeClick = { navController.navigate("income") },
+                onExpenseClick = { navController.navigate("expense") },
+                onSavingsClick = { navController.navigate("savings") }
             )
         }
     ) { paddingValues ->
@@ -564,6 +575,107 @@ fun QuickActionButton(
 fun formatCurrency(amount: Double): String {
     val format = NumberFormat.getCurrencyInstance(Locale("en", "BD"))
     return format.format(amount)
+}
+
+@Composable
+fun ExpandableFab(
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onIncomeClick: () -> Unit,
+    onExpenseClick: () -> Unit,
+    onSavingsClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                MiniFab(
+                    icon = Icons.Default.Savings,
+                    label = "Savings",
+                    color = Secondary,
+                    onClick = {
+                        onExpandedChange(false)
+                        onSavingsClick()
+                    }
+                )
+                MiniFab(
+                    icon = Icons.Default.Remove,
+                    label = "Expense",
+                    color = Error,
+                    onClick = {
+                        onExpandedChange(false)
+                        onExpenseClick()
+                    }
+                )
+                MiniFab(
+                    icon = Icons.Default.Add,
+                    label = "Income",
+                    color = Success,
+                    onClick = {
+                        onExpandedChange(false)
+                        onIncomeClick()
+                    }
+                )
+            }
+        }
+
+        FloatingActionButton(
+            onClick = { onExpandedChange(!expanded) },
+            containerColor = Primary
+        ) {
+            Icon(
+                imageVector = if (expanded) Icons.Default.Close else Icons.Default.Add,
+                contentDescription = if (expanded) "Close" else "Add",
+                tint = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+fun MiniFab(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(4.dp),
+            shadowElevation = 2.dp
+        ) {
+            Text(
+                label,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        SmallFloatingActionButton(
+            onClick = onClick,
+            containerColor = color
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = Color.White
+            )
+        }
+    }
 }
 
 data class TransactionUi(

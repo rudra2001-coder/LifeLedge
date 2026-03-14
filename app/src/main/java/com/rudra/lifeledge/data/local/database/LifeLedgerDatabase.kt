@@ -11,19 +11,21 @@ import com.rudra.lifeledge.data.local.entity.*
 
 @Database(
     entities = [
-        WorkDay::class, OvertimeLog::class, WorkSession::class,
+        WorkLog::class, WorkDay::class, OvertimeLog::class, WorkSession::class,
         Account::class, Transaction::class, Category::class, RecurringTransaction::class,
         Loan::class, EMIPayment::class, CreditCard::class,
         Habit::class, HabitCompletion::class,
         JournalEntry::class, DailyLog::class,
         Goal::class, HealthMetric::class,
-        Setting::class, BackupLog::class, SmartAdviceLog::class
+        Setting::class, BackupLog::class, SmartAdviceLog::class,
+        SavingGoal::class, SavingTransaction::class
     ],
     version = 1,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class LifeLedgerDatabase : RoomDatabase() {
+    abstract fun workLogDao(): WorkLogDao
     abstract fun workDayDao(): WorkDayDao
     abstract fun overtimeLogDao(): OvertimeLogDao
     abstract fun workSessionDao(): WorkSessionDao
@@ -43,6 +45,8 @@ abstract class LifeLedgerDatabase : RoomDatabase() {
     abstract fun settingDao(): SettingDao
     abstract fun backupLogDao(): BackupLogDao
     abstract fun smartAdviceLogDao(): SmartAdviceLogDao
+    abstract fun savingGoalDao(): SavingGoalDao
+    abstract fun savingTransactionDao(): SavingTransactionDao
 
     companion object {
         @Volatile

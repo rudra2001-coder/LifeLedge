@@ -1,4 +1,4 @@
-package com.rudra.lifeledge.ui.screens.finance
+package com.rudra.lifeledge.ui.screens.income
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,10 +31,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.*
+import org.koin.androidx.compose.koinViewModel
+import com.rudra.lifeledge.data.repository.FinanceRepository
+import com.rudra.lifeledge.data.local.entity.Transaction
 
 data class IncomeUiState(
     val amount: String = "",
@@ -69,7 +71,7 @@ fun IncomeScreen(
     navController: NavController,
     onNavigateBack: () -> Unit = {}
 ) {
-    val viewModel = remember { IncomeViewModel() }
+    val viewModel: IncomeViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess) {
@@ -430,7 +432,9 @@ fun RecurringCard(
     }
 }
 
-class IncomeViewModel : ViewModel() {
+class IncomeViewModel(
+    private val financeRepository: FinanceRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(IncomeUiState())
     val uiState: StateFlow<IncomeUiState> = _uiState.asStateFlow()
 
@@ -461,8 +465,33 @@ class IncomeViewModel : ViewModel() {
     fun saveIncome() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            // Save to database here
-            _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+            try {
+                val amountValue = _uiState.value.amount.toDoubleOrNull() ?: 0.0
+                if (amountValue > 0) {
+                    val transaction = Transaction(
+                        date = _uiState.value.selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                        amount = amountValue,
+                        type = TransactionType.INCOME,
+                        categoryId = 0L,
+                        accountId = 1L, // Default account
+                        toAccountId = null,
+                        payee = null,
+                        notes = _uiState.value.description,
+                        isRecurring = _uiState.value.isRecurring,
+                        recurringId = null,
+                        isCleared = true,
+                        attachment = null,
+                        location = null,
+                        tags = _uiState.value.selectedSource?.name ?: ""
+                    )
+                    financeRepository.saveTransaction(transaction)
+                    _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
         }
     }
 }

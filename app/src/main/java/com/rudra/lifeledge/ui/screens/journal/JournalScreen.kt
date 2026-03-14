@@ -26,7 +26,9 @@ import com.rudra.lifeledge.ui.theme.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 data class JournalUiState(
     val entries: List<JournalEntry> = emptyList(),
@@ -39,7 +41,7 @@ data class JournalUiState(
 @Composable
 fun JournalScreen(
     navController: NavController,
-    viewModel: JournalViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: JournalViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -233,32 +235,59 @@ fun EmptyStateCard(message: String) {
     }
 }
 
-class JournalViewModel : ViewModel() {
+class JournalViewModel(
+    private val journalRepository: JournalRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(JournalUiState())
     val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
 
+    private val _dbEntries = MutableStateFlow<List<JournalEntry>>(emptyList())
+
     init {
-        loadData()
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            journalRepository.getAllJournalEntries().collect { entries ->
+                _dbEntries.value = entries
+                applyFilters()
+            }
+        }
     }
 
-    fun loadData() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                entries = emptyList(),
-                isLoading = false
-            )
+    private fun applyFilters() {
+        val currentQuery = _uiState.value.searchQuery
+        val showFavOnly = _uiState.value.showFavoritesOnly
+        
+        var filtered = _dbEntries.value
+        if (showFavOnly) {
+            filtered = filtered.filter { it.isFavorite }
         }
+        if (currentQuery.isNotBlank()) {
+            filtered = filtered.filter { 
+                it.title.contains(currentQuery, ignoreCase = true) || 
+                it.content.contains(currentQuery, ignoreCase = true) 
+            }
+        }
+        
+        _uiState.value = _uiState.value.copy(
+            entries = filtered,
+            isLoading = false
+        )
     }
 
     fun updateSearchQuery(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
+        applyFilters()
     }
 
     fun toggleFavoritesFilter() {
         _uiState.value = _uiState.value.copy(showFavoritesOnly = !_uiState.value.showFavoritesOnly)
+        applyFilters()
     }
 
     fun toggleFavorite(entry: JournalEntry) {
-        // Toggle logic
+        viewModelScope.launch {
+            val updatedEntry = entry.copy(isFavorite = !entry.isFavorite)
+            journalRepository.saveJournalEntry(updatedEntry)
+        }
     }
 }

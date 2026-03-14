@@ -4,9 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,19 +29,45 @@ data class MoreMenuItem(
     val route: String? = null
 )
 
-val moreMenuItems = listOf(
-    MoreMenuItem("work", "Work Center", "Track hours & overtime", Icons.Default.Work, Color(0xFF3B82F6), "work"),
-    MoreMenuItem("habits", "Habits", "Build daily routines", Icons.Default.CheckCircle, Color(0xFF22C55E), "habits"),
-    MoreMenuItem("journal", "Journal", "Reflect & write", Icons.Default.Book, Color(0xFF8B5CF6), "journal"),
-    MoreMenuItem("goals", "Goals", "Set & achieve goals", Icons.Default.Flag, Color(0xFFF59E0B), "goals"),
-    MoreMenuItem("reports", "Reports", "Analytics & insights", Icons.Default.Analytics, Color(0xFF06B6D4), "reports"),
-    MoreMenuItem("accounts", "Accounts", "Manage accounts", Icons.Default.AccountBalance, Color(0xFFEC4899)),
-    MoreMenuItem("budgets", "Budgets", "Set spending limits", Icons.Default.PieChart, Color(0xFFF97316)),
-    MoreMenuItem("recurring", "Recurring", "Auto transactions", Icons.Default.Repeat, Color(0xFF6366F1)),
-    MoreMenuItem("loans", "Loans & EMI", "Track debts", Icons.Default.CreditCard, Color(0xFFEF4444)),
-    MoreMenuItem("debts", "Debt Tracker", "Manage loans", Icons.Default.AccountBalanceWallet, Color(0xFFE11D48)),
-    MoreMenuItem("calendar", "Calendar", "View all events", Icons.Default.CalendarMonth, Color(0xFF14B8A6)),
-    MoreMenuItem("export", "Export Data", "JSON, CSV, PDF", Icons.Default.Download, Color(0xFF64748B))
+data class MoreSection(
+    val title: String,
+    val items: List<MoreMenuItem>
+)
+
+val financialSection = MoreSection(
+    title = "Financial",
+    items = listOf(
+        MoreMenuItem("income", "Add Income", "Record your income", Icons.Default.TrendingUp, Success, "income"),
+        MoreMenuItem("expense", "Add Expense", "Track your spending", Icons.Default.TrendingDown, Error, "expense"),
+        MoreMenuItem("savings", "Savings", "Manage savings goals", Icons.Default.Savings, Secondary, "savings"),
+        MoreMenuItem("transfer", "Transfer", "Move money", Icons.Default.SwapHoriz, Color(0xFF6366F1), "transfer"),
+        MoreMenuItem("accounts", "Accounts", "Manage bank accounts", Icons.Default.AccountBalance, Color(0xFFEC4899), "finance"),
+        MoreMenuItem("budgets", "Budgets", "Set spending limits", Icons.Default.PieChart, Color(0xFFF97316), "finance"),
+        MoreMenuItem("recurring", "Recurring", "Auto transactions", Icons.Default.Repeat, Color(0xFF8B5CF6), "finance"),
+        MoreMenuItem("loans", "Loans & EMI", "Track debts", Icons.Default.CreditCard, Color(0xFFEF4444), "finance")
+    )
+)
+
+val generalSection = MoreSection(
+    title = "General",
+    items = listOf(
+        MoreMenuItem("work", "Work Center", "Track hours & overtime", Icons.Default.Work, Color(0xFF3B82F6), "work"),
+        MoreMenuItem("habits", "Habits", "Build daily routines", Icons.Default.CheckCircle, Color(0xFF22C55E), "habits"),
+        MoreMenuItem("journal", "Journal", "Reflect & write", Icons.Default.Book, Color(0xFF8B5CF6), "journal"),
+        MoreMenuItem("goals", "Goals", "Set & achieve goals", Icons.Default.Flag, Color(0xFFF59E0B), "goals"),
+        MoreMenuItem("reports", "Reports", "Analytics & insights", Icons.Default.Analytics, Color(0xFF06B6D4), "reports"),
+        MoreMenuItem("calendar", "Calendar", "View all events", Icons.Default.CalendarMonth, Color(0xFF14B8A6), "dashboard")
+    )
+)
+
+val settingsSection = MoreSection(
+    title = "Settings",
+    items = listOf(
+        MoreMenuItem("settings", "Settings", "App preferences", Icons.Default.Settings, Color(0xFF64748B), "settings"),
+        MoreMenuItem("backup", "Backup & Restore", "Manage your data", Icons.Default.Backup, Color(0xFF64748B), "backup"),
+        MoreMenuItem("export", "Export Data", "JSON, CSV, PDF", Icons.Default.Download, Color(0xFF64748B), "export"),
+        MoreMenuItem("about", "About", "Version 1.0.0", Icons.Default.Info, Color(0xFF64748B), "settings")
+    )
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,27 +88,40 @@ fun MoreScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
                 QuickActionsSection(navController)
             }
 
             item {
-                Text(
-                    "All Features",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                SectionCard(
+                    title = financialSection.title,
+                    icon = Icons.Default.AccountBalance,
+                    iconColor = Success,
+                    items = financialSection.items,
+                    navController = navController
                 )
             }
 
             item {
-                FeaturesGrid(navController)
+                SectionCard(
+                    title = generalSection.title,
+                    icon = Icons.Default.GridView,
+                    iconColor = Primary,
+                    items = generalSection.items,
+                    navController = navController
+                )
             }
 
             item {
-                SettingsSection(navController)
+                SectionCard(
+                    title = settingsSection.title,
+                    icon = Icons.Default.Settings,
+                    iconColor = Color(0xFF64748B),
+                    items = settingsSection.items,
+                    navController = navController
+                )
             }
 
             item {
@@ -115,12 +151,12 @@ fun QuickActionsSection(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 QuickActionButton(
-                    icon = Icons.Default.Add,
+                    icon = Icons.Default.TrendingUp,
                     label = "Income",
                     onClick = { navController.navigate("income") }
                 )
                 QuickActionButton(
-                    icon = Icons.Default.Remove,
+                    icon = Icons.Default.TrendingDown,
                     label = "Expense",
                     onClick = { navController.navigate("expense") }
                 )
@@ -132,7 +168,7 @@ fun QuickActionsSection(navController: NavController) {
                 QuickActionButton(
                     icon = Icons.Default.SwapHoriz,
                     label = "Transfer",
-                    onClick = { }
+                    onClick = { navController.navigate("transfer") }
                 )
             }
         }
@@ -177,56 +213,90 @@ fun QuickActionButton(
 }
 
 @Composable
-fun FeaturesGrid(navController: NavController) {
-    Column(
+fun SectionCard(
+    title: String,
+    icon: ImageVector,
+    iconColor: Color,
+    items: List<MoreMenuItem>,
+    navController: NavController
+) {
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        moreMenuItems.chunked(2).forEach { rowItems ->
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
             ) {
-                rowItems.forEach { item ->
-                    FeatureCard(
-                        item = item,
-                        onClick = { 
-                            item.route?.let { navController.navigate(it) }
-                        },
-                        modifier = Modifier.weight(1f)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(iconColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-                if (rowItems.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            items.chunked(2).forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowItems.forEach { item ->
+                        SectionItem(
+                            item = item,
+                            onClick = { 
+                                item.route?.let { navController.navigate(it) }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (rowItems.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
 }
 
 @Composable
-fun FeatureCard(
+fun SectionItem(
     item: MoreMenuItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
-            .fillMaxWidth()
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(36.dp)
                     .background(item.color.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -234,102 +304,23 @@ fun FeatureCard(
                     imageVector = item.icon,
                     contentDescription = null,
                     tint = item.color,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     item.title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     item.subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
                 )
             }
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
         }
-    }
-}
-
-@Composable
-fun SettingsSection(navController: NavController) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column {
-            SettingsItem(
-                icon = Icons.Default.Settings,
-                title = "Settings",
-                subtitle = "App preferences",
-                onClick = { navController.navigate("settings") }
-            )
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            SettingsItem(
-                icon = Icons.Default.Backup,
-                title = "Backup & Restore",
-                subtitle = "Manage your data",
-                onClick = { }
-            )
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            SettingsItem(
-                icon = Icons.Default.Info,
-                title = "About",
-                subtitle = "Version 1.0.0",
-                onClick = { }
-            )
-        }
-    }
-}
-
-@Composable
-fun SettingsItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Icon(
-            Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

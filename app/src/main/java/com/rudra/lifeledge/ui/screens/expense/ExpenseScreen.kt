@@ -1,4 +1,4 @@
-package com.rudra.lifeledge.ui.screens.finance
+package com.rudra.lifeledge.ui.screens.expense
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +32,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import org.koin.androidx.compose.koinViewModel
+import com.rudra.lifeledge.data.repository.FinanceRepository
+import com.rudra.lifeledge.data.local.entity.Transaction
+import com.rudra.lifeledge.data.local.entity.TransactionType
+import com.rudra.lifeledge.ui.screens.income.RecurringFrequency
 
 data class ExpenseUiState(
     val amount: String = "",
@@ -72,7 +77,7 @@ fun ExpenseScreen(
     navController: NavController,
     onNavigateBack: () -> Unit = {}
 ) {
-    val viewModel = remember { ExpenseViewModel() }
+    val viewModel: ExpenseViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess) {
@@ -487,7 +492,9 @@ fun ExpenseRecurringCard(
     }
 }
 
-class ExpenseViewModel : ViewModel() {
+class ExpenseViewModel(
+    private val financeRepository: FinanceRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(ExpenseUiState())
     val uiState: StateFlow<ExpenseUiState> = _uiState.asStateFlow()
 
@@ -522,8 +529,33 @@ class ExpenseViewModel : ViewModel() {
     fun saveExpense() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            // Save to database here
-            _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+            try {
+                val amountValue = _uiState.value.amount.toDoubleOrNull() ?: 0.0
+                if (amountValue > 0) {
+                    val transaction = Transaction(
+                        date = _uiState.value.selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                        amount = amountValue,
+                        type = TransactionType.EXPENSE,
+                        categoryId = 0L,
+                        accountId = 1L, // Default account
+                        toAccountId = null,
+                        payee = null,
+                        notes = _uiState.value.description,
+                        isRecurring = _uiState.value.isRecurring,
+                        recurringId = null,
+                        isCleared = true,
+                        attachment = null,
+                        location = null,
+                        tags = _uiState.value.selectedCategory?.name ?: ""
+                    )
+                    financeRepository.saveTransaction(transaction)
+                    _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
         }
     }
 }

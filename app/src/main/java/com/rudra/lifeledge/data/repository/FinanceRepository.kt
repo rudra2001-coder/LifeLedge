@@ -87,4 +87,101 @@ class FinanceRepository(
     fun getAllCreditCards(): Flow<List<CreditCard>> = creditCardDao.getAllCreditCards()
 
     suspend fun saveCreditCard(creditCard: CreditCard): Long = creditCardDao.insertCreditCard(creditCard)
+
+    // Balance Calculations
+    fun getTotalIncome(): Flow<Double> = transactionDao.getTotalIncome()
+    fun getTotalExpense(): Flow<Double> = transactionDao.getTotalExpense()
+    fun getTotalSaved(): Flow<Double> = transactionDao.getTotalSaved()
+    fun getTotalTransferredFromSavings(): Flow<Double> = transactionDao.getTotalTransferredFromSavings()
+    fun getNetBalance(): Flow<Double> = transactionDao.getNetBalance()
+    fun getSavingsBalance(): Flow<Double> = transactionDao.getSavingsBalance()
+
+    // Monthly totals
+    fun getMonthlyIncome(startDate: String, endDate: String): Flow<Double> = 
+        transactionDao.getMonthlyIncome(startDate, endDate)
+    fun getMonthlyExpense(startDate: String, endDate: String): Flow<Double> = 
+        transactionDao.getMonthlyExpense(startDate, endDate)
+    fun getMonthlySaved(startDate: String, endDate: String): Flow<Double> = 
+        transactionDao.getMonthlySaved(startDate, endDate)
+
+    // Money Flow Actions
+    suspend fun addIncome(amount: Double, category: String?, note: String? = null) {
+        val transaction = Transaction(
+            date = java.time.LocalDate.now().toString(),
+            amount = amount,
+            type = TransactionType.INCOME,
+            categoryId = 0,
+            accountId = 0,
+            toAccountId = null,
+            payee = null,
+            notes = note,
+            isRecurring = false,
+            recurringId = null,
+            isCleared = true,
+            attachment = null,
+            location = null,
+            tags = category ?: ""
+        )
+        transactionDao.insertTransaction(transaction)
+    }
+
+    suspend fun addExpense(amount: Double, category: String?, note: String? = null) {
+        val transaction = Transaction(
+            date = java.time.LocalDate.now().toString(),
+            amount = amount,
+            type = TransactionType.EXPENSE,
+            categoryId = 0,
+            accountId = 0,
+            toAccountId = null,
+            payee = null,
+            notes = note,
+            isRecurring = false,
+            recurringId = null,
+            isCleared = true,
+            attachment = null,
+            location = null,
+            tags = category ?: ""
+        )
+        transactionDao.insertTransaction(transaction)
+    }
+
+    suspend fun addSaving(amount: Double, note: String? = null) {
+        val transaction = Transaction(
+            date = java.time.LocalDate.now().toString(),
+            amount = amount,
+            type = TransactionType.SAVE,
+            categoryId = 0,
+            accountId = 0,
+            toAccountId = null,
+            payee = null,
+            notes = note,
+            isRecurring = false,
+            recurringId = null,
+            isCleared = true,
+            attachment = null,
+            location = null,
+            tags = ""
+        )
+        transactionDao.insertTransaction(transaction)
+    }
+
+    suspend fun transferFromSavings(amount: Double, note: String? = null) {
+        val transaction = Transaction(
+            date = java.time.LocalDate.now().toString(),
+            amount = amount,
+            type = TransactionType.TRANSFER_FROM_SAVING,
+            categoryId = 0,
+            accountId = 0,
+            toAccountId = null,
+            payee = null,
+            notes = note,
+            isRecurring = false,
+            recurringId = null,
+            isCleared = true,
+            attachment = null,
+            location = null,
+            tags = ""
+        )
+        transactionDao.insertTransaction(transaction)
+    }
 }

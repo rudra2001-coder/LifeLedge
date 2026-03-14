@@ -3,12 +3,19 @@ package com.rudra.lifeledge.di
 import com.rudra.lifeledge.data.local.database.LifeLedgerDatabase
 import com.rudra.lifeledge.data.repository.*
 import com.rudra.lifeledge.ui.screens.dashboard.DashboardViewModel
+import com.rudra.lifeledge.ui.screens.goals.GoalsViewModel
+import com.rudra.lifeledge.ui.screens.goals.AddGoalViewModel
+import com.rudra.lifeledge.ui.screens.habits.HabitsViewModel
+import com.rudra.lifeledge.ui.screens.journal.JournalViewModel
+import com.rudra.lifeledge.ui.screens.savings.SavingsViewModel
+import com.rudra.lifeledge.ui.screens.work.WorkViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val databaseModule = module {
     single { LifeLedgerDatabase.getDatabase(androidContext()) }
+    single { get<LifeLedgerDatabase>().workLogDao() }
     single { get<LifeLedgerDatabase>().workDayDao() }
     single { get<LifeLedgerDatabase>().overtimeLogDao() }
     single { get<LifeLedgerDatabase>().workSessionDao() }
@@ -28,16 +35,25 @@ val databaseModule = module {
     single { get<LifeLedgerDatabase>().settingDao() }
     single { get<LifeLedgerDatabase>().backupLogDao() }
     single { get<LifeLedgerDatabase>().smartAdviceLogDao() }
+    single { get<LifeLedgerDatabase>().savingGoalDao() }
+    single { get<LifeLedgerDatabase>().savingTransactionDao() }
 }
 
 val repositoryModule = module {
-    single { WorkRepository(get(), get(), get()) }
+    single { WorkRepository(get(), get(), get(), get()) }
     single { FinanceRepository(get(), get(), get(), get(), get(), get(), get()) }
     single { HabitRepository(get(), get()) }
     single { JournalRepository(get(), get()) }
     single { GoalRepository(get(), get()) }
     single { SettingsRepository(get(), get(), get()) }
+    single { SavingRepository(get(), get()) }
     viewModel { DashboardViewModel(get(), get(), get(), get()) }
+    viewModel { GoalsViewModel(get()) }
+    viewModel { AddGoalViewModel(get()) }
+    viewModel { HabitsViewModel(get()) }
+    viewModel { JournalViewModel(get()) }
+    viewModel { WorkViewModel(get()) }
+    viewModel { SavingsViewModel(get(), get()) }
 }
 
 val appModules = listOf(databaseModule, repositoryModule)

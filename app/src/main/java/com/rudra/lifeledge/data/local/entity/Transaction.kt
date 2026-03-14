@@ -3,7 +3,13 @@ package com.rudra.lifeledge.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-enum class TransactionType { INCOME, EXPENSE, TRANSFER }
+enum class TransactionType { 
+    INCOME, 
+    EXPENSE, 
+    SAVE,
+    TRANSFER_FROM_SAVING,
+    TRANSFER 
+}
 
 @Entity(tableName = "transactions")
 data class Transaction(
