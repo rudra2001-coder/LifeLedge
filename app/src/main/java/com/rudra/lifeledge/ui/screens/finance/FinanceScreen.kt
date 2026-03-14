@@ -24,6 +24,7 @@ import com.rudra.lifeledge.data.local.entity.Account
 import com.rudra.lifeledge.data.local.entity.Transaction
 import com.rudra.lifeledge.data.local.entity.TransactionType
 import com.rudra.lifeledge.data.repository.FinanceRepository
+import com.rudra.lifeledge.ui.navigation.Screen
 import com.rudra.lifeledge.ui.screens.savings.EmptyStateCard
 import com.rudra.lifeledge.ui.theme.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,9 +71,9 @@ fun FinanceScreen(
         ) {
             // Quick Action Buttons
             QuickActionsRow(
-                onIncomeClick = { navController.navigate("income") },
-                onExpenseClick = { navController.navigate("expense") },
-                onSavingsClick = { navController.navigate("savings") }
+                onIncomeClick = { navController.navigate(Screen.Income.route) },
+                onExpenseClick = { navController.navigate(Screen.Expense.route) },
+                onSavingsClick = { navController.navigate(Screen.Savings.route) }
             )
 
             BalanceSummaryCard(

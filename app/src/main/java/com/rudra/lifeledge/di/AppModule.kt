@@ -2,13 +2,21 @@ package com.rudra.lifeledge.di
 
 import com.rudra.lifeledge.data.local.database.LifeLedgerDatabase
 import com.rudra.lifeledge.data.repository.*
+import com.rudra.lifeledge.data.backup.BackupManager
 import com.rudra.lifeledge.ui.screens.dashboard.DashboardViewModel
 import com.rudra.lifeledge.ui.screens.goals.GoalsViewModel
 import com.rudra.lifeledge.ui.screens.goals.AddGoalViewModel
 import com.rudra.lifeledge.ui.screens.habits.HabitsViewModel
 import com.rudra.lifeledge.ui.screens.journal.JournalViewModel
 import com.rudra.lifeledge.ui.screens.savings.SavingsViewModel
+import com.rudra.lifeledge.ui.screens.income.IncomeViewModel
 import com.rudra.lifeledge.ui.screens.work.WorkViewModel
+import com.rudra.lifeledge.ui.screens.backup.BackupViewModel
+import com.rudra.lifeledge.ui.screens.expense.ExpenseViewModel
+import com.rudra.lifeledge.ui.screens.finance.FinanceViewModel
+import com.rudra.lifeledge.ui.screens.transfer.TransferViewModel
+import com.rudra.lifeledge.ui.screens.settings.ExportViewModel
+import com.rudra.lifeledge.ui.screens.reports.ReportsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -47,13 +55,21 @@ val repositoryModule = module {
     single { GoalRepository(get(), get()) }
     single { SettingsRepository(get(), get(), get()) }
     single { SavingRepository(get(), get()) }
+    single { BackupManager(androidContext()) }
     viewModel { DashboardViewModel(get(), get(), get(), get()) }
     viewModel { GoalsViewModel(get()) }
     viewModel { AddGoalViewModel(get()) }
     viewModel { HabitsViewModel(get()) }
     viewModel { JournalViewModel(get()) }
+    viewModel { IncomeViewModel(get()) }
     viewModel { WorkViewModel(get()) }
     viewModel { SavingsViewModel(get(), get()) }
+    viewModel { BackupViewModel(get(), get()) }
+    viewModel { ExpenseViewModel(get()) }
+    viewModel { FinanceViewModel() }
+    viewModel { TransferViewModel(get()) }
+    viewModel { ExportViewModel() }
+    viewModel { ReportsViewModel() }
 }
 
 val appModules = listOf(databaseModule, repositoryModule)

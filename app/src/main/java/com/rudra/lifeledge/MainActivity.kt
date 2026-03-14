@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import com.rudra.lifeledge.ui.components.BottomNavigationBar
 import com.rudra.lifeledge.ui.navigation.LifeLedgerNavGraph
 import com.rudra.lifeledge.ui.theme.LifeLedgeTheme
+import org.koin.compose.KoinContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,7 +22,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LifeLedgeTheme {
-                MainAppContent()
+                KoinContext {
+                    MainAppContent()
+                }
             }
         }
     }

@@ -111,7 +111,13 @@ dependencies {
     // Navigation
     // ------------------------------------------------------------
     implementation("androidx.navigation:navigation-compose:2.8.3")
-    
+
+    // ------------------------------------------------------------
+    // Backupsystem
+    // ------------------------------------------------------------
+    implementation("com.google.code.gson:gson:2.10.1")
+// For Kotlin, you might also want:
+    implementation("com.google.code.gson:gson:2.10.1")
     // ------------------------------------------------------------
     // Room Database (KSP ONLY)
     // ------------------------------------------------------------

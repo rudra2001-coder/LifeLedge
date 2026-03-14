@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.rudra.lifeledge.ui.navigation.Screen
 import com.rudra.lifeledge.ui.theme.Primary
 
 data class BottomNavItem(
@@ -19,9 +20,11 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem("dashboard", "Home", Icons.Default.Home),
-    BottomNavItem("finance", "Finance", Icons.Default.AccountBalance),
-    BottomNavItem("more", "More", Icons.Default.GridView)
+    BottomNavItem(Screen.Dashboard.route, "Home", Icons.Default.Home),
+    BottomNavItem(Screen.Finance.route, "Finance", Icons.Default.AccountBalance),
+    BottomNavItem(Screen.Work.route, "Work", Icons.Default.Work),
+    BottomNavItem(Screen.Habits.route, "Habits", Icons.Default.FitnessCenter),
+    BottomNavItem(Screen.More.route, "More", Icons.Default.GridView)
 )
 
 @Composable

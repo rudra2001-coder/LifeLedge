@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.rudra.lifeledge.ui.navigation.Screen
 import com.rudra.lifeledge.ui.theme.*
 
 data class MoreMenuItem(
@@ -37,36 +38,36 @@ data class MoreSection(
 val financialSection = MoreSection(
     title = "Financial",
     items = listOf(
-        MoreMenuItem("income", "Add Income", "Record your income", Icons.Default.TrendingUp, Success, "income"),
-        MoreMenuItem("expense", "Add Expense", "Track your spending", Icons.Default.TrendingDown, Error, "expense"),
-        MoreMenuItem("savings", "Savings", "Manage savings goals", Icons.Default.Savings, Secondary, "savings"),
-        MoreMenuItem("transfer", "Transfer", "Move money", Icons.Default.SwapHoriz, Color(0xFF6366F1), "transfer"),
-        MoreMenuItem("accounts", "Accounts", "Manage bank accounts", Icons.Default.AccountBalance, Color(0xFFEC4899), "finance"),
-        MoreMenuItem("budgets", "Budgets", "Set spending limits", Icons.Default.PieChart, Color(0xFFF97316), "finance"),
-        MoreMenuItem("recurring", "Recurring", "Auto transactions", Icons.Default.Repeat, Color(0xFF8B5CF6), "finance"),
-        MoreMenuItem("loans", "Loans & EMI", "Track debts", Icons.Default.CreditCard, Color(0xFFEF4444), "finance")
+        MoreMenuItem("income", "Add Income", "Record your income", Icons.Default.TrendingUp, Success, Screen.Income.route),
+        MoreMenuItem("expense", "Add Expense", "Track your spending", Icons.Default.TrendingDown, Error, Screen.Expense.route),
+        MoreMenuItem("savings", "Savings", "Manage savings goals", Icons.Default.Savings, Secondary, Screen.Savings.route),
+        MoreMenuItem("transfer", "Transfer", "Move money", Icons.Default.SwapHoriz, Color(0xFF6366F1), Screen.Transfer.route),
+        MoreMenuItem("accounts", "Accounts", "Manage bank accounts", Icons.Default.AccountBalance, Color(0xFFEC4899), Screen.Finance.route),
+        MoreMenuItem("budgets", "Budgets", "Set spending limits", Icons.Default.PieChart, Color(0xFFF97316), Screen.Finance.route),
+        MoreMenuItem("recurring", "Recurring", "Auto transactions", Icons.Default.Repeat, Color(0xFF8B5CF6), Screen.Finance.route),
+        MoreMenuItem("loans", "Loans & EMI", "Track debts", Icons.Default.CreditCard, Color(0xFFEF4444), Screen.Finance.route)
     )
 )
 
 val generalSection = MoreSection(
     title = "General",
     items = listOf(
-        MoreMenuItem("work", "Work Center", "Track hours & overtime", Icons.Default.Work, Color(0xFF3B82F6), "work"),
-        MoreMenuItem("habits", "Habits", "Build daily routines", Icons.Default.CheckCircle, Color(0xFF22C55E), "habits"),
-        MoreMenuItem("journal", "Journal", "Reflect & write", Icons.Default.Book, Color(0xFF8B5CF6), "journal"),
-        MoreMenuItem("goals", "Goals", "Set & achieve goals", Icons.Default.Flag, Color(0xFFF59E0B), "goals"),
-        MoreMenuItem("reports", "Reports", "Analytics & insights", Icons.Default.Analytics, Color(0xFF06B6D4), "reports"),
-        MoreMenuItem("calendar", "Calendar", "View all events", Icons.Default.CalendarMonth, Color(0xFF14B8A6), "dashboard")
+        MoreMenuItem("work", "Work Center", "Track hours & overtime", Icons.Default.Work, Color(0xFF3B82F6), Screen.Work.route),
+        MoreMenuItem("habits", "Habits", "Build daily routines", Icons.Default.CheckCircle, Color(0xFF22C55E), Screen.Habits.route),
+        MoreMenuItem("journal", "Journal", "Reflect & write", Icons.Default.Book, Color(0xFF8B5CF6), Screen.Journal.route),
+        MoreMenuItem("goals", "Goals", "Set & achieve goals", Icons.Default.Flag, Color(0xFFF59E0B), Screen.Goals.route),
+        MoreMenuItem("reports", "Reports", "Analytics & insights", Icons.Default.Analytics, Color(0xFF06B6D4), Screen.Reports.route),
+        MoreMenuItem("calendar", "Calendar", "View all events", Icons.Default.CalendarMonth, Color(0xFF14B8A6), Screen.Dashboard.route)
     )
 )
 
 val settingsSection = MoreSection(
     title = "Settings",
     items = listOf(
-        MoreMenuItem("settings", "Settings", "App preferences", Icons.Default.Settings, Color(0xFF64748B), "settings"),
-        MoreMenuItem("backup", "Backup & Restore", "Manage your data", Icons.Default.Backup, Color(0xFF64748B), "backup"),
-        MoreMenuItem("export", "Export Data", "JSON, CSV, PDF", Icons.Default.Download, Color(0xFF64748B), "export"),
-        MoreMenuItem("about", "About", "Version 1.0.0", Icons.Default.Info, Color(0xFF64748B), "settings")
+        MoreMenuItem("settings", "Settings", "App preferences", Icons.Default.Settings, Color(0xFF64748B), Screen.Settings.route),
+        MoreMenuItem("backup", "Backup & Restore", "Manage your data", Icons.Default.Backup, Color(0xFF64748B), Screen.Backup.route),
+        MoreMenuItem("export", "Export Data", "JSON, CSV, PDF", Icons.Default.Download, Color(0xFF64748B), Screen.Export.route),
+        MoreMenuItem("about", "About", "Version 1.0.0", Icons.Default.Info, Color(0xFF64748B), Screen.Settings.route)
     )
 )
 
@@ -153,22 +154,22 @@ fun QuickActionsSection(navController: NavController) {
                 QuickActionButton(
                     icon = Icons.Default.TrendingUp,
                     label = "Income",
-                    onClick = { navController.navigate("income") }
+                    onClick = { navController.navigate(Screen.Income.route) }
                 )
                 QuickActionButton(
                     icon = Icons.Default.TrendingDown,
                     label = "Expense",
-                    onClick = { navController.navigate("expense") }
+                    onClick = { navController.navigate(Screen.Expense.route) }
                 )
                 QuickActionButton(
                     icon = Icons.Default.Savings,
                     label = "Savings",
-                    onClick = { navController.navigate("savings") }
+                    onClick = { navController.navigate(Screen.Savings.route) }
                 )
                 QuickActionButton(
                     icon = Icons.Default.SwapHoriz,
                     label = "Transfer",
-                    onClick = { navController.navigate("transfer") }
+                    onClick = { navController.navigate(Screen.Transfer.route) }
                 )
             }
         }

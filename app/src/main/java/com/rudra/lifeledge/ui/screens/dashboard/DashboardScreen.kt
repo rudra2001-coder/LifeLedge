@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.rudra.lifeledge.ui.navigation.Screen
 import com.rudra.lifeledge.ui.theme.*
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
@@ -48,7 +49,7 @@ fun DashboardScreen(
                     IconButton(onClick = { }) {
                         Icon(Icons.Default.Notifications, contentDescription = "Notifications")
                     }
-                    IconButton(onClick = { navController.navigate("settings") }) {
+                    IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
                         Icon(Icons.Default.Person, contentDescription = "Profile")
                     }
                 },
@@ -61,9 +62,9 @@ fun DashboardScreen(
             ExpandableFab(
                 expanded = isFabExpanded,
                 onExpandedChange = { isFabExpanded = it },
-                onIncomeClick = { navController.navigate("income") },
-                onExpenseClick = { navController.navigate("expense") },
-                onSavingsClick = { navController.navigate("savings") }
+                onIncomeClick = { navController.navigate(Screen.Income.route) },
+                onExpenseClick = { navController.navigate(Screen.Expense.route) },
+                onSavingsClick = { navController.navigate(Screen.Savings.route) }
             )
         }
     ) { paddingValues ->
@@ -106,23 +107,23 @@ fun DashboardScreen(
             item {
                 RecentTransactionsCard(
                     transactions = uiState.recentTransactions,
-                    onViewAll = { navController.navigate("finance") }
+                    onViewAll = { navController.navigate(Screen.Finance.route) }
                 )
             }
 
             item {
                 GoalsProgressCard(
                     goals = uiState.activeGoals,
-                    onViewAll = { navController.navigate("goals") }
+                    onViewAll = { navController.navigate(Screen.Goals.route) }
                 )
             }
 
             item {
                 QuickActionsCard(
-                    onAddExpense = { navController.navigate("add_transaction") },
-                    onLogWork = { navController.navigate("work") },
-                    onAddHabit = { navController.navigate("add_habit") },
-                    onWriteJournal = { navController.navigate("add_journal_entry") }
+                    onAddExpense = { navController.navigate(Screen.Expense.route) },
+                    onLogWork = { navController.navigate(Screen.Work.route) },
+                    onAddHabit = { navController.navigate(Screen.Habits.route) },
+                    onWriteJournal = { navController.navigate(Screen.Journal.route) }
                 )
             }
 

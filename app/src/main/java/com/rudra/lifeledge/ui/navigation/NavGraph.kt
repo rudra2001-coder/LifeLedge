@@ -17,7 +17,7 @@ import com.rudra.lifeledge.ui.screens.income.IncomeScreen
 import com.rudra.lifeledge.ui.screens.expense.ExpenseScreen
 import com.rudra.lifeledge.ui.screens.reports.ReportsScreen
 import com.rudra.lifeledge.ui.screens.settings.SettingsScreen
-import com.rudra.lifeledge.ui.screens.settings.BackupScreen
+import com.rudra.lifeledge.ui.screens.backup.BackupScreen
 import com.rudra.lifeledge.ui.screens.settings.ExportScreen
 import com.rudra.lifeledge.ui.screens.more.MoreScreen
 
@@ -39,22 +39,22 @@ fun LifeLedgerNavGraph(
         composable(Screen.Finance.route) {
             FinanceScreen(navController = navController)
         }
-        composable("savings") {
+        composable(Screen.Savings.route) {
             SavingsScreen(navController = navController) {
                 navController.popBackStack()
             }
         }
-        composable("transfer") {
+        composable(Screen.Transfer.route) {
             TransferScreen(navController = navController) {
                 navController.popBackStack()
             }
         }
-        composable("income") {
+        composable(Screen.Income.route) {
             IncomeScreen(navController = navController) {
                 navController.popBackStack()
             }
         }
-        composable("expense") {
+        composable(Screen.Expense.route) {
             ExpenseScreen(navController = navController) {
                 navController.popBackStack()
             }
@@ -68,7 +68,7 @@ fun LifeLedgerNavGraph(
         composable(Screen.Goals.route) {
             GoalsScreen(navController = navController)
         }
-        composable("add_goal") {
+        composable(Screen.AddGoal.route) {
             AddGoalsScreen(navController = navController) {
                 navController.popBackStack()
             }
@@ -79,17 +79,17 @@ fun LifeLedgerNavGraph(
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController)
         }
-        composable("backup") {
+        composable(Screen.Backup.route) {
             BackupScreen(navController = navController) {
                 navController.popBackStack()
             }
         }
-        composable("export") {
+        composable(Screen.Export.route) {
             ExportScreen(navController = navController) {
                 navController.popBackStack()
             }
         }
-        composable("more") {
+        composable(Screen.More.route) {
             MoreScreen(navController = navController)
         }
     }

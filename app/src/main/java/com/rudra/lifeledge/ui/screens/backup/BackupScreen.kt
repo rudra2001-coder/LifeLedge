@@ -1,8 +1,6 @@
-package com.rudra.lifeledge.ui.screens.settings
+package com.rudra.lifeledge.ui.screens.backup
 
-import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -13,17 +11,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.rudra.lifeledge.data.local.database.LifeLedgerDatabase
 import com.rudra.lifeledge.data.repository.SettingsRepository
+import com.rudra.lifeledge.data.backup.BackupManager
+import com.rudra.lifeledge.data.backup.BackupMetadata
+import com.rudra.lifeledge.data.backup.BackupResult
+import com.rudra.lifeledge.data.local.entity.Setting
+import com.rudra.lifeledge.data.local.entity.SettingType
 import com.rudra.lifeledge.ui.theme.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +48,7 @@ fun BackupScreen(
     navController: NavController,
     onNavigateBack: () -> Unit = {}
 ) {
-    val viewModel: BackupViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val viewModel: BackupViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -96,7 +96,8 @@ fun BackupScreen(
             item {
                 RestoreSection(
                     isRestoring = uiState.isRestoring,
-                    onRestore = { viewModel.restoreBackup() }
+                    backupId = viewModel.getBackupList().firstOrNull()?.backupId ?: "",
+                    onRestore = { backupId -> viewModel.restoreBackup(backupId) }
                 )
             }
 
@@ -292,7 +293,8 @@ fun ManualBackupSection(
 @Composable
 fun RestoreSection(
     isRestoring: Boolean,
-    onRestore: () -> Unit
+    backupId: String,
+    onRestore: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -332,9 +334,9 @@ fun RestoreSection(
             
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(
-                onClick = onRestore,
+                onClick = { onRestore(backupId) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isRestoring,
+                enabled = !isRestoring && backupId.isNotEmpty(),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (isRestoring) {
@@ -348,7 +350,7 @@ fun RestoreSection(
                 } else {
                     Icon(Icons.Default.FolderOpen, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Select Backup File")
+                    Text(if (backupId.isEmpty()) "No Backup Available" else "Restore: $backupId")
                 }
             }
             
@@ -362,12 +364,13 @@ fun RestoreSection(
     }
 }
 
-class BackupViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
+class BackupViewModel(private val settingsRepository: SettingsRepository, private val backupManager: BackupManager) : ViewModel() {
     private val _uiState = MutableStateFlow(BackupUiState())
     val uiState: StateFlow<BackupUiState> = _uiState.asStateFlow()
 
     init {
         loadSettings()
+        loadBackupHistory()
     }
 
     private fun loadSettings() {
@@ -386,11 +389,16 @@ class BackupViewModel(private val settingsRepository: SettingsRepository) : View
         }
     }
 
+    private fun loadBackupHistory() {
+        val backups = backupManager.getBackupList()
+        _uiState.value = _uiState.value.copy(backupCount = backups.size)
+    }
+
     fun toggleAutoBackup() {
         val newValue = !_uiState.value.autoBackupEnabled
         _uiState.value = _uiState.value.copy(autoBackupEnabled = newValue)
         viewModelScope.launch {
-            settingsRepository.saveSetting(com.rudra.lifeledge.data.local.entity.Setting(key = "auto_backup_enabled", value = newValue.toString(), type = com.rudra.lifeledge.data.local.entity.SettingType.STRING))
+            settingsRepository.saveSetting(Setting(key = "auto_backup_enabled", value = newValue.toString(), type = SettingType.STRING))
             _uiState.value = _uiState.value.copy(
                 message = if (newValue) "Auto backup enabled" else "Auto backup disabled"
             )
@@ -400,7 +408,7 @@ class BackupViewModel(private val settingsRepository: SettingsRepository) : View
     fun updateFrequency(frequency: String) {
         _uiState.value = _uiState.value.copy(backupFrequency = frequency)
         viewModelScope.launch {
-            settingsRepository.saveSetting(com.rudra.lifeledge.data.local.entity.Setting(key = "backup_frequency", value = frequency, type = com.rudra.lifeledge.data.local.entity.SettingType.STRING))
+            settingsRepository.saveSetting(Setting(key = "backup_frequency", value = frequency, type = SettingType.STRING))
         }
     }
 
@@ -408,19 +416,28 @@ class BackupViewModel(private val settingsRepository: SettingsRepository) : View
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isBackingUp = true, message = null)
             try {
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                val now = dateFormat.format(Date())
-                settingsRepository.saveSetting(com.rudra.lifeledge.data.local.entity.Setting(key = "last_backup_date", value = now, type = com.rudra.lifeledge.data.local.entity.SettingType.STRING))
-                
-                val currentCount = _uiState.value.backupCount
-                settingsRepository.saveSetting(com.rudra.lifeledge.data.local.entity.Setting(key = "backup_count", value = (currentCount + 1).toString(), type = com.rudra.lifeledge.data.local.entity.SettingType.STRING))
-                
-                _uiState.value = _uiState.value.copy(
-                    isBackingUp = false,
-                    lastBackupDate = now,
-                    backupCount = currentCount + 1,
-                    message = "Backup created successfully!"
-                )
+                val result = backupManager.performBackup()
+                when (result) {
+                    is BackupResult.Success -> {
+                        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                        val now = dateFormat.format(Date())
+                        settingsRepository.saveSetting(Setting(key = "last_backup_date", value = now, type = SettingType.STRING))
+                        val currentCount = _uiState.value.backupCount
+                        settingsRepository.saveSetting(Setting(key = "backup_count", value = (currentCount + 1).toString(), type = SettingType.STRING))
+                        _uiState.value = _uiState.value.copy(
+                            isBackingUp = false,
+                            lastBackupDate = now,
+                            backupCount = currentCount + 1,
+                            message = "Backup created successfully!"
+                        )
+                    }
+                    is BackupResult.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isBackingUp = false,
+                            message = "Backup failed: ${result.message}"
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isBackingUp = false,
@@ -430,16 +447,34 @@ class BackupViewModel(private val settingsRepository: SettingsRepository) : View
         }
     }
 
-    fun restoreBackup() {
+    fun restoreBackup(backupId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRestoring = true, message = null)
             try {
-                // Simulate restore process
-                kotlinx.coroutines.delay(2000)
-                _uiState.value = _uiState.value.copy(
-                    isRestoring = false,
-                    message = "Data restored successfully!"
-                )
+                val backupFile = backupManager.getBackupFile(backupId)
+                if (backupFile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isRestoring = false,
+                        message = "Backup file not found"
+                    )
+                    return@launch
+                }
+                
+                val result = backupManager.restoreFromBackup(backupFile)
+                when (result) {
+                    is BackupResult.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isRestoring = false,
+                            message = "Data restored successfully!"
+                        )
+                    }
+                    is BackupResult.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isRestoring = false,
+                            message = "Restore failed: ${result.message}"
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isRestoring = false,
@@ -447,5 +482,9 @@ class BackupViewModel(private val settingsRepository: SettingsRepository) : View
                 )
             }
         }
+    }
+
+    fun getBackupList(): List<BackupMetadata> {
+        return backupManager.getBackupList()
     }
 }
