@@ -35,6 +35,7 @@ import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
+import org.koin.androidx.compose.koinViewModel
 
 data class FinanceUiState(
     val accounts: List<Account> = emptyList(),
@@ -50,7 +51,7 @@ data class FinanceUiState(
 @Composable
 fun FinanceScreen(
     navController: NavController,
-    viewModel: FinanceViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: FinanceViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -442,7 +443,9 @@ fun formatCurrency(amount: Double): String {
     return format.format(amount)
 }
 
-class FinanceViewModel : ViewModel() {
+class FinanceViewModel(
+    private val financeRepository: FinanceRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(FinanceUiState())
     val uiState: StateFlow<FinanceUiState> = _uiState.asStateFlow()
 

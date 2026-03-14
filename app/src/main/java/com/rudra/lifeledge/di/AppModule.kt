@@ -66,7 +66,7 @@ val repositoryModule = module {
     viewModel { SavingsViewModel(get(), get()) }
     viewModel { BackupViewModel(get(), get()) }
     viewModel { ExpenseViewModel(get()) }
-    viewModel { FinanceViewModel() }
+    viewModel { FinanceViewModel(get()) }
     viewModel { TransferViewModel(get()) }
     viewModel { ExportViewModel() }
     viewModel { ReportsViewModel() }

@@ -37,6 +37,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
+import org.koin.androidx.compose.koinViewModel
 
 private fun LocalDate.toEpochMilli(): Long = this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
@@ -59,8 +60,10 @@ data class WorkUiState(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkScreen(navController: NavController) {
-    val viewModel: WorkViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+fun WorkScreen(
+    navController: NavController,
+    viewModel: WorkViewModel = koinViewModel()
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     if (uiState.showMarkDialog && uiState.selectedDate != null) {
