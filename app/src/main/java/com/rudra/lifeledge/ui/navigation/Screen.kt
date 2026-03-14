@@ -1,0 +1,28 @@
+package com.rudra.lifeledge.ui.navigation
+
+sealed class Screen(val route: String) {
+    object Dashboard : Screen("dashboard")
+    object Work : Screen("work")
+    object Finance : Screen("finance")
+    object Habits : Screen("habits")
+    object Journal : Screen("journal")
+    object Goals : Screen("goals")
+    object Reports : Screen("reports")
+    object Settings : Screen("settings")
+    object AddTransaction : Screen("add_transaction")
+    object AddHabit : Screen("add_habit")
+    object AddJournalEntry : Screen("add_journal_entry")
+    object AddGoal : Screen("add_goal")
+    object WorkDayDetail : Screen("work_day_detail/{date}") {
+        fun createRoute(date: String) = "work_day_detail/$date"
+    }
+    object TransactionDetail : Screen("transaction_detail/{id}") {
+        fun createRoute(id: Long) = "transaction_detail/$id"
+    }
+    object HabitDetail : Screen("habit_detail/{id}") {
+        fun createRoute(id: Long) = "habit_detail/$id"
+    }
+    object GoalDetail : Screen("goal_detail/{id}") {
+        fun createRoute(id: Long) = "goal_detail/$id"
+    }
+}
