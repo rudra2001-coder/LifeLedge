@@ -16,9 +16,11 @@ data class RecurringTransaction(
     val accountId: Long,
     val frequency: Frequency,
     val interval: Int,
+    val executeDay: Int?,
     val startDate: String,
     val endDate: String?,
     val nextDate: String,
+    val lastExecutedDate: String?,
     val payee: String?,
     val notes: String?,
     val isActive: Boolean

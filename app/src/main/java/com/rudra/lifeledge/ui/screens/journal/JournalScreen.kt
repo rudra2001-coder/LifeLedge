@@ -30,12 +30,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
-data class JournalUiState(
-    val entries: List<JournalEntry> = emptyList(),
-    val searchQuery: String = "",
-    val showFavoritesOnly: Boolean = false,
-    val isLoading: Boolean = true
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +38,22 @@ fun JournalScreen(
     viewModel: JournalViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.recentlyDeletedEntry) {
+        uiState.recentlyDeletedEntry?.let {
+            val result = snackbarHostState.showSnackbar(
+                message = "Journal entry deleted",
+                actionLabel = "UNDO",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDeleteEntry()
+            } else {
+                viewModel.clearDeletedEntry()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -69,7 +79,8 @@ fun JournalScreen(
             ) {
                 Icon(Icons.Default.Edit, contentDescription = "Write", tint = Color.White)
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -95,7 +106,8 @@ fun JournalScreen(
                 items(uiState.entries) { entry ->
                     JournalEntryCard(
                         entry = entry,
-                        onFavoriteToggle = { viewModel.toggleFavorite(entry) }
+                        onFavoriteToggle = { viewModel.toggleFavorite(entry) },
+                        onDelete = { viewModel.deleteEntry(entry) }
                     )
                 }
             }
@@ -120,8 +132,11 @@ fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
 @Composable
 fun JournalEntryCard(
     entry: JournalEntry,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    onDelete: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -153,12 +168,21 @@ fun JournalEntryCard(
                         )
                     }
                 }
-                IconButton(onClick = onFavoriteToggle) {
-                    Icon(
-                        imageVector = if (entry.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (entry.isFavorite) Error else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row {
+                    IconButton(onClick = onFavoriteToggle) {
+                        Icon(
+                            imageVector = if (entry.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorite",
+                            tint = if (entry.isFavorite) Error else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = Error.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -175,6 +199,24 @@ fun JournalEntryCard(
                 EnergyIndicator(label = "Productivity", value = entry.productivity)
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Entry") },
+            text = { Text("Are you sure you want to delete this journal entry?") },
+            confirmButton = {
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text("Delete", color = Error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -231,63 +273,6 @@ fun EmptyStateCard(message: String) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-}
-
-class JournalViewModel(
-    private val journalRepository: JournalRepository
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(JournalUiState())
-    val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
-
-    private val _dbEntries = MutableStateFlow<List<JournalEntry>>(emptyList())
-
-    init {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            journalRepository.getAllJournalEntries().collect { entries ->
-                _dbEntries.value = entries
-                applyFilters()
-            }
-        }
-    }
-
-    private fun applyFilters() {
-        val currentQuery = _uiState.value.searchQuery
-        val showFavOnly = _uiState.value.showFavoritesOnly
-        
-        var filtered = _dbEntries.value
-        if (showFavOnly) {
-            filtered = filtered.filter { it.isFavorite }
-        }
-        if (currentQuery.isNotBlank()) {
-            filtered = filtered.filter { 
-                it.title.contains(currentQuery, ignoreCase = true) || 
-                it.content.contains(currentQuery, ignoreCase = true) 
-            }
-        }
-        
-        _uiState.value = _uiState.value.copy(
-            entries = filtered,
-            isLoading = false
-        )
-    }
-
-    fun updateSearchQuery(query: String) {
-        _uiState.value = _uiState.value.copy(searchQuery = query)
-        applyFilters()
-    }
-
-    fun toggleFavoritesFilter() {
-        _uiState.value = _uiState.value.copy(showFavoritesOnly = !_uiState.value.showFavoritesOnly)
-        applyFilters()
-    }
-
-    fun toggleFavorite(entry: JournalEntry) {
-        viewModelScope.launch {
-            val updatedEntry = entry.copy(isFavorite = !entry.isFavorite)
-            journalRepository.saveJournalEntry(updatedEntry)
         }
     }
 }

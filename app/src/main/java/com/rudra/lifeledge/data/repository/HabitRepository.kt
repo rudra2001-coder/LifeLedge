@@ -44,4 +44,7 @@ class HabitRepository(
 
     suspend fun getCompletionCount(habitId: Long, startDate: String, endDate: String): Int =
         habitCompletionDao.getCompletionCount(habitId, startDate, endDate)
+
+    suspend fun getAllCompletionsForHabit(habitId: Long): List<HabitCompletion> =
+        habitCompletionDao.getAllCompletionsForHabit(habitId)
 }

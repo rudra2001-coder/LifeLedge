@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import com.rudra.lifeledge.data.local.entity.Habit
 import com.rudra.lifeledge.data.local.entity.HabitCategory
 import com.rudra.lifeledge.data.local.entity.HabitCompletion
+import com.rudra.lifeledge.data.local.entity.HabitFrequency
 import com.rudra.lifeledge.data.repository.HabitRepository
 import com.rudra.lifeledge.ui.theme.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,12 +34,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import org.koin.androidx.compose.koinViewModel
 
-data class HabitsUiState(
-    val habits: List<Habit> = emptyList(),
-    val todayCompletions: List<Long> = emptyList(),
-    val selectedCategory: HabitCategory? = null,
-    val isLoading: Boolean = true
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +42,22 @@ fun HabitsScreen(
     viewModel: HabitsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.recentlyDeletedHabit) {
+        uiState.recentlyDeletedHabit?.let {
+            val result = snackbarHostState.showSnackbar(
+                message = "Habit deleted",
+                actionLabel = "UNDO",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDeleteHabit()
+            } else {
+                viewModel.clearDeletedHabit()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -59,12 +70,13 @@ fun HabitsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* Add habit */ },
+                onClick = { viewModel.showAddHabitDialog() },
                 containerColor = Primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Habit", tint = Color.White)
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -98,13 +110,24 @@ fun HabitsScreen(
                     HabitCard(
                         habit = habit,
                         isCompleted = uiState.todayCompletions.contains(habit.id),
-                        onToggle = { viewModel.toggleHabitCompletion(habit) }
+                        streak = uiState.habitStreaks[habit.id] ?: 0,
+                        onToggle = { viewModel.toggleHabitCompletion(habit) },
+                        onDelete = { viewModel.deleteHabit(habit) }
                     )
                 }
             }
 
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
+    }
+
+    if (uiState.showAddHabitDialog) {
+        AddHabitDialog(
+            onDismiss = { viewModel.hideAddHabitDialog() },
+            onConfirm = { name, desc, cat, freq, target, unit, icon, color ->
+                viewModel.createHabit(name, desc, cat, freq, target, unit, icon, color)
+            }
+        )
     }
 }
 
@@ -180,8 +203,12 @@ fun TodayProgressCard(total: Int, completed: Int) {
 fun HabitCard(
     habit: Habit,
     isCompleted: Boolean,
-    onToggle: () -> Unit
+    streak: Int,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -224,18 +251,54 @@ fun HabitCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
-                Text(
-                    "${habit.target} ${habit.unit}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (streak > 0) {
+                        Text(
+                            "🔥 $streak day streak",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Warning
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(
+                        "${habit.target} ${habit.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             Text(
                 habit.category.name.lowercase().replaceFirstChar { it.uppercase() },
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(habit.color)
             )
+            IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(18.dp),
+                    tint = Error.copy(alpha = 0.7f)
+                )
+            }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Habit") },
+            text = { Text("Are you sure you want to delete \"${habit.name}\"?") },
+            confirmButton = {
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text("Delete", color = Error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -260,60 +323,131 @@ fun EmptyStateCard(message: String) {
     }
 }
 
-class HabitsViewModel(
-    private val habitRepository: HabitRepository
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(HabitsUiState())
-    val uiState: StateFlow<HabitsUiState> = _uiState.asStateFlow()
+@Composable
+fun AddHabitDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String?, HabitCategory, HabitFrequency, Double, String, String, Int) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(HabitCategory.HEALTH) }
+    var selectedFrequency by remember { mutableStateOf(HabitFrequency.DAILY) }
+    var target by remember { mutableStateOf("1") }
+    var unit by remember { mutableStateOf("times") }
+    var selectedIcon by remember { mutableStateOf("🎯") }
+    var selectedColor by remember { mutableStateOf(0xFF22C55E) }
 
-    init {
-        loadData()
-    }
+    val icons = listOf("🎯", "💪", "📚", "🏃", "💧", "🧘", "✍️", "🎨", "💼", "🌅")
+    val colors = listOf(0xFF22C55E, 0xFF3B82F6, 0xFFEF4444, 0xFFF59E0B, 0xFF8B5CF6, 0xFFEC4899)
 
-    fun loadData() {
-        val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-
-            launch {
-                habitRepository.getActiveHabits().collect { habits ->
-                    _uiState.value = _uiState.value.copy(
-                        habits = habits,
-                        isLoading = false
-                    )
-                }
-            }
-
-            launch {
-                habitRepository.getCompletionsForDate(todayStr).collect { completions ->
-                    _uiState.value = _uiState.value.copy(
-                        todayCompletions = completions.map { it.habitId }
-                    )
-                }
-            }
-        }
-    }
-
-    fun selectCategory(category: HabitCategory?) {
-        _uiState.value = _uiState.value.copy(selectedCategory = category)
-    }
-
-    fun toggleHabitCompletion(habit: Habit) {
-        val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-        viewModelScope.launch {
-            val existingCompletion = habitRepository.getCompletionForDate(habit.id, todayStr)
-            if (existingCompletion != null) {
-                habitRepository.deleteHabitCompletion(existingCompletion)
-            } else {
-                val newCompletion = HabitCompletion(
-                    habitId = habit.id,
-                    date = todayStr,
-                    value = 1.0,
-                    notes = null,
-                    synced = false
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add New Habit", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Habit Name") },
+                    placeholder = { Text("Drink Water") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
-                habitRepository.saveHabitCompletion(newCompletion)
+
+                Text("Icon", style = MaterialTheme.typography.bodyMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    icons.forEach { icon ->
+                        FilterChip(
+                            selected = selectedIcon == icon,
+                            onClick = { selectedIcon = icon },
+                            label = { Text(icon) }
+                        )
+                    }
+                }
+
+                Text("Category", style = MaterialTheme.typography.bodyMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    HabitCategory.entries.take(3).forEach { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = category },
+                            label = { Text(category.name.take(4), style = MaterialTheme.typography.bodySmall) }
+                        )
+                    }
+                }
+
+                Text("Frequency", style = MaterialTheme.typography.bodyMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    HabitFrequency.entries.forEach { freq ->
+                        FilterChip(
+                            selected = selectedFrequency == freq,
+                            onClick = { selectedFrequency = freq },
+                            label = { Text(freq.name.take(4), style = MaterialTheme.typography.bodySmall) }
+                        )
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = target,
+                        onValueChange = { target = it },
+                        label = { Text("Target") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = unit,
+                        onValueChange = { unit = it },
+                        label = { Text("Unit") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                Text("Color", style = MaterialTheme.typography.bodyMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    colors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Color(color), CircleShape)
+                                .then(
+                                    if (selectedColor == color) Modifier.background(
+                                        Color.White.copy(alpha = 0.3f),
+                                        CircleShape
+                                    ) else Modifier
+                                )
+                        ) {
+                            if (selectedColor == color) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val targetValue = target.toDoubleOrNull() ?: 1.0
+                    if (name.isNotBlank()) {
+                        onConfirm(name, description.ifBlank { null }, selectedCategory, selectedFrequency, targetValue, unit, selectedIcon, selectedColor.toInt())
+                    }
+                },
+                enabled = name.isNotBlank()
+            ) {
+                Text("Add Habit")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
             }
         }
-    }
+    )
 }

@@ -3,7 +3,9 @@ package com.rudra.lifeledge.ui.screens.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rudra.lifeledge.data.local.entity.DayType
+import com.rudra.lifeledge.data.local.entity.RecurringTransaction
 import com.rudra.lifeledge.data.local.entity.TransactionType
+import com.rudra.lifeledge.data.local.entity.WorkType
 import com.rudra.lifeledge.data.repository.FinanceRepository
 import com.rudra.lifeledge.data.repository.GoalRepository
 import com.rudra.lifeledge.data.repository.HabitRepository
@@ -15,6 +17,8 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.DayOfWeek
+import java.time.temporal.TemporalAdjusters
 
 data class DashboardUiState(
     val lifeScore: Int = 0,
@@ -24,6 +28,13 @@ data class DashboardUiState(
     val monthlyExpense: Double = 0.0,
     val monthlySaved: Double = 0.0,
     val savingsRate: Double = 0.0,
+    val dailyIncome: Double = 0.0,
+    val dailyExpense: Double = 0.0,
+    val dailyNetBalance: Double = 0.0,
+    val expenseCategories: List<ExpenseCategoryUi> = emptyList(),
+    val weeklyWorkDays: List<WorkDayUi> = emptyList(),
+    val monthlyWorkDays: Int = 0,
+    val monthlyExtraHours: Int = 0,
     val weeklyWorkHours: Double = 0.0,
     val workLifeBalance: Int = 0,
     val activeHabits: Int = 0,
@@ -31,6 +42,7 @@ data class DashboardUiState(
     val longestStreak: Int = 0,
     val recentTransactions: List<TransactionUi> = emptyList(),
     val activeGoals: List<GoalUi> = emptyList(),
+    val upcomingRecurring: List<RecurringTransaction> = emptyList(),
     val isLoading: Boolean = true
 )
 
@@ -59,6 +71,81 @@ class DashboardViewModel(
 
                 // Load work data
                 val weeklyHours = workRepository.getTotalWorkHours(weekStart, monthEnd)
+
+                // Daily Income/Expense/Balance
+                val todayStr = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                launch {
+                    financeRepository.getDailyIncome(todayStr).collect { income ->
+                        _uiState.value = _uiState.value.copy(dailyIncome = income)
+                        _uiState.value = _uiState.value.copy(
+                            dailyNetBalance = _uiState.value.dailyIncome - _uiState.value.dailyExpense
+                        )
+                    }
+                }
+                launch {
+                    financeRepository.getDailyExpense(todayStr).collect { expense ->
+                        _uiState.value = _uiState.value.copy(dailyExpense = expense)
+                        _uiState.value = _uiState.value.copy(
+                            dailyNetBalance = _uiState.value.dailyIncome - _uiState.value.dailyExpense
+                        )
+                    }
+                }
+
+                // Monthly Expense Categories (Top 7)
+                launch {
+                    financeRepository.getExpensesByCategory(monthStart, monthEnd).collect { categories ->
+                        val categoryNames = mapOf(
+                            1L to "Food", 2L to "Transport", 3L to "Shopping",
+                            4L to "Bills", 5L to "Entertainment", 6L to "Health", 7L to "Others"
+                        )
+                        val expenseCats = categories
+                            .sortedByDescending { it.total }
+                            .take(7)
+                            .map { cat ->
+                                ExpenseCategoryUi(
+                                    categoryId = cat.categoryId,
+                                    categoryName = categoryNames[cat.categoryId] ?: "Category ${cat.categoryId}",
+                                    total = cat.total
+                                )
+                            }
+                        _uiState.value = _uiState.value.copy(expenseCategories = expenseCats)
+                    }
+                }
+
+                // Weekly Work Days (Friday to Thursday)
+                val friday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.FRIDAY))
+                val thursday = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.THURSDAY))
+                val weekDates = (0..6).map { friday.plusDays(it.toLong()) }
+                val weekStartEpoch = friday.toEpochDay()
+                val weekEndEpoch = thursday.toEpochDay()
+                
+                launch {
+                    workRepository.getWorkLogsBetween(weekStartEpoch, weekEndEpoch).collect { workLogs ->
+                        val workLogsMap = workLogs.associateBy { it.date }
+                        val dayNames = listOf("Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu")
+                        val weeklyDays = weekDates.mapIndexed { index, date ->
+                            val dateEpoch = date.toEpochDay()
+                            val workLog = workLogsMap[dateEpoch]
+                            WorkDayUi(
+                                date = date.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                dayName = dayNames.getOrElse(index) { "" },
+                                isWorkingDay = workLog?.type == WorkType.WORK,
+                                hoursWorked = if (workLog?.type == WorkType.WORK) 8.0 else 0.0
+                            )
+                        }
+                        _uiState.value = _uiState.value.copy(weeklyWorkDays = weeklyDays)
+                    }
+                }
+
+                // Monthly Work Summary
+                val monthStartEpoch = today.withDayOfMonth(1).toEpochDay()
+                val monthEndEpoch = today.toEpochDay()
+                val workDaysCount = workRepository.getWorkDayCount(monthStartEpoch, monthEndEpoch)
+                val extraHours = workRepository.getTotalExtraHours(monthStartEpoch, monthEndEpoch)
+                _uiState.value = _uiState.value.copy(
+                    monthlyWorkDays = workDaysCount,
+                    monthlyExtraHours = extraHours
+                )
 
                 // Load habit data
                 val activeHabitsTotal = habitRepository.getActiveHabits().firstOrNull()?.size ?: 0
@@ -124,6 +211,17 @@ class DashboardViewModel(
                             )
                         }
                         _uiState.value = _uiState.value.copy(recentTransactions = txUis)
+                    }
+                }
+
+                // Upcoming Recurring Transactions
+                launch {
+                    financeRepository.getActiveRecurringTransactions().collect { recurring ->
+                        val upcoming = recurring
+                            .filter { it.isActive }
+                            .sortedBy { it.nextDate }
+                            .take(5)
+                        _uiState.value = _uiState.value.copy(upcomingRecurring = upcoming)
                     }
                 }
 

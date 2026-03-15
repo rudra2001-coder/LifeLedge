@@ -20,6 +20,9 @@ import com.rudra.lifeledge.ui.screens.settings.SettingsScreen
 import com.rudra.lifeledge.ui.screens.backup.BackupScreen
 import com.rudra.lifeledge.ui.screens.settings.ExportScreen
 import com.rudra.lifeledge.ui.screens.more.MoreScreen
+import com.rudra.lifeledge.ui.screens.recurring.RecurringTransactionsScreen
+import com.rudra.lifeledge.ui.screens.cards.CardsScreen
+import com.rudra.lifeledge.ui.screens.calendar.CalendarScreen
 
 @Composable
 fun LifeLedgerNavGraph(
@@ -40,24 +43,28 @@ fun LifeLedgerNavGraph(
             FinanceScreen(navController = navController)
         }
         composable(Screen.Savings.route) {
-            SavingsScreen(navController = navController) {
-                navController.popBackStack()
-            }
+            SavingsScreen(
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Transfer.route) {
-            TransferScreen(navController = navController) {
-                navController.popBackStack()
-            }
+            TransferScreen(
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Income.route) {
-            IncomeScreen(navController = navController) {
-                navController.popBackStack()
-            }
+            IncomeScreen(
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Expense.route) {
-            ExpenseScreen(navController = navController) {
-                navController.popBackStack()
-            }
+            ExpenseScreen(
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Habits.route) {
             HabitsScreen(navController = navController)
@@ -80,9 +87,10 @@ fun LifeLedgerNavGraph(
             SettingsScreen(navController = navController)
         }
         composable(Screen.Backup.route) {
-            BackupScreen(navController = navController) {
-                navController.popBackStack()
-            }
+            BackupScreen(
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Export.route) {
             ExportScreen(navController = navController) {
@@ -91,6 +99,20 @@ fun LifeLedgerNavGraph(
         }
         composable(Screen.More.route) {
             MoreScreen(navController = navController)
+        }
+        composable(Screen.RecurringTransactions.route) {
+            RecurringTransactionsScreen(
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Cards.route) {
+            CardsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Calendar.route) {
+            CalendarScreen(navController = navController)
         }
     }
 }

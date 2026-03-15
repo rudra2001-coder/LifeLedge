@@ -18,9 +18,11 @@ import com.rudra.lifeledge.data.local.entity.*
         JournalEntry::class, DailyLog::class,
         Goal::class, HealthMetric::class,
         Setting::class, BackupLog::class, SmartAdviceLog::class,
-        SavingGoal::class, SavingTransaction::class
+        SavingGoal::class, SavingTransaction::class,
+        CardEntity::class,
+        ActivityLog::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -47,6 +49,8 @@ abstract class LifeLedgerDatabase : RoomDatabase() {
     abstract fun smartAdviceLogDao(): SmartAdviceLogDao
     abstract fun savingGoalDao(): SavingGoalDao
     abstract fun savingTransactionDao(): SavingTransactionDao
+    abstract fun cardDao(): CardDao
+    abstract fun activityLogDao(): ActivityLogDao
 
     companion object {
         @Volatile
@@ -58,7 +62,9 @@ abstract class LifeLedgerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LifeLedgerDatabase::class.java,
                     "lifeledger_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

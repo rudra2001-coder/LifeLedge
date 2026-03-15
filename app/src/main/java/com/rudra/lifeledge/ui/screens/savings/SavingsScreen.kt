@@ -21,33 +21,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.rudra.lifeledge.data.local.entity.SavingGoal
 import com.rudra.lifeledge.data.local.entity.SavingTransaction
-import com.rudra.lifeledge.data.repository.FinanceRepository
-import com.rudra.lifeledge.data.repository.SavingRepository
 import com.rudra.lifeledge.ui.theme.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import org.koin.androidx.compose.koinViewModel
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavingsScreen(
     navController: NavController,
-    onNavigateBack: () -> Unit = {},
-    viewModel: SavingsViewModel = koinViewModel()
+    viewModel: SavingsViewModel = koinViewModel(),
+    onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.recentlyDeletedGoal) {
+        uiState.recentlyDeletedGoal?.let {
+            val result = snackbarHostState.showSnackbar(
+                message = "Goal deleted",
+                actionLabel = "UNDO",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDeleteGoal()
+            } else {
+                viewModel.clearDeletedGoal()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -70,7 +75,8 @@ fun SavingsScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Savings", tint = Color.White)
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -140,7 +146,9 @@ fun SavingsScreen(
                         items(uiState.activeGoals) { goal ->
                             GoalCard(
                                 goal = goal,
-                                onClick = { }
+                                onClick = { },
+                                onWithdraw = { viewModel.showWithdrawDialog(goal) },
+                                onDelete = { viewModel.deleteGoal(goal) }
                             )
                         }
                     }
@@ -152,7 +160,7 @@ fun SavingsScreen(
                         }
                     } else {
                         items(uiState.completedGoals) { goal ->
-                            CompletedGoalCard(goal = goal)
+                            CompletedGoalCard(goal = goal, onDelete = { viewModel.deleteGoal(goal) })
                         }
                     }
                 }
@@ -186,8 +194,19 @@ fun SavingsScreen(
         AddSavingsDialog(
             goals = uiState.activeGoals,
             onDismiss = { viewModel.hideAddSavingsDialog() },
-            onConfirm = { amount, goalId, note ->
-                viewModel.addSaving(amount, goalId, note)
+            onConfirm = { amount, goalId, note, source ->
+                viewModel.addSaving(amount, goalId, note, source)
+            }
+        )
+    }
+
+    if (uiState.showWithdrawDialog && uiState.withdrawingGoal != null) {
+        val goal = uiState.withdrawingGoal!!
+        WithdrawDialog(
+            goal = goal,
+            onDismiss = { viewModel.hideWithdrawDialog() },
+            onConfirm = { amount, note ->
+                viewModel.withdrawFromGoal(amount, goal.id, note)
             }
         )
     }
@@ -261,7 +280,8 @@ fun SavingsSummaryCard(
 }
 
 @Composable
-fun GoalCard(goal: SavingGoal, onClick: () -> Unit) {
+fun GoalCard(goal: SavingGoal, onClick: () -> Unit, onWithdraw: () -> Unit, onDelete: () -> Unit) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val progress = (goal.savedAmount / goal.targetAmount).coerceIn(0.0, 1.0).toFloat()
     val goalColor = Color(goal.color)
 
@@ -302,12 +322,22 @@ fun GoalCard(goal: SavingGoal, onClick: () -> Unit) {
                         )
                     }
                 }
-                Text(
-                    "${(progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = goalColor
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = goalColor
+                    )
+                    IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            modifier = Modifier.size(18.dp),
+                            tint = Error.copy(alpha = 0.7f)
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
             Row(
@@ -336,17 +366,46 @@ fun GoalCard(goal: SavingGoal, onClick: () -> Unit) {
                 trackColor = goalColor.copy(alpha = 0.2f)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Remaining: ৳${formatNumber(goal.targetAmount - goal.savedAmount)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Remaining: ৳${formatNumber(goal.targetAmount - goal.savedAmount)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (goal.savedAmount > 0) {
+                    TextButton(onClick = onWithdraw) {
+                        Text("Withdraw", color = Error)
+                    }
+                }
+            }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Goal") },
+            text = { Text("Are you sure you want to delete \"${goal.title}\"? This will also delete all savings transactions for this goal.") },
+            confirmButton = {
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text("Delete", color = Error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
 @Composable
-fun CompletedGoalCard(goal: SavingGoal) {
+fun CompletedGoalCard(goal: SavingGoal, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Success.copy(alpha = 0.1f)),
@@ -590,11 +649,19 @@ fun AddGoalDialog(
 fun AddSavingsDialog(
     goals: List<SavingGoal>,
     onDismiss: () -> Unit,
-    onConfirm: (Double, Long?, String?) -> Unit
+    onConfirm: (Double, Long?, String?, String) -> Unit
 ) {
     var amount by remember { mutableStateOf("") }
     var selectedGoalId by remember { mutableStateOf<Long?>(null) }
     var note by remember { mutableStateOf("") }
+    var selectedSource by remember { mutableStateOf("CASH") }
+
+    val sources = listOf(
+        "CASH" to "Cash",
+        "CARD" to "Card",
+        "INCOME" to "Income",
+        "WALLET" to "Wallet"
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -611,6 +678,21 @@ fun AddSavingsDialog(
                     leadingIcon = { Text("৳") },
                     singleLine = true
                 )
+
+                Text("Source", style = MaterialTheme.typography.bodyMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sources.forEach { (value, label) ->
+                        FilterChip(
+                            selected = selectedSource == value,
+                            onClick = { selectedSource = value },
+                            label = { Text(label, style = MaterialTheme.typography.bodySmall) }
+                        )
+                    }
+                }
+
                 Text("Save to", style = MaterialTheme.typography.bodyMedium)
                 
                 // General Savings option
@@ -678,7 +760,7 @@ fun AddSavingsDialog(
                 onClick = {
                     val amountValue = amount.toDoubleOrNull() ?: 0.0
                     if (amountValue > 0) {
-                        onConfirm(amountValue, selectedGoalId, note.ifBlank { null })
+                        onConfirm(amountValue, selectedGoalId, note.ifBlank { null }, selectedSource)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Secondary)
@@ -701,4 +783,63 @@ fun formatNumber(number: Double): String {
 fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
+}
+
+@Composable
+fun WithdrawDialog(
+    goal: SavingGoal,
+    onDismiss: () -> Unit,
+    onConfirm: (Double, String?) -> Unit
+) {
+    var amount by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Withdraw from ${goal.title}", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "Available: ৳${formatNumber(goal.savedAmount)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Success
+                )
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) amount = it },
+                    label = { Text("Amount") },
+                    placeholder = { Text("Enter amount") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    leadingIcon = { Text("৳") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text("Note (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val amountValue = amount.toDoubleOrNull() ?: 0.0
+                    if (amountValue > 0 && amountValue <= goal.savedAmount) {
+                        onConfirm(amountValue, note.ifBlank { null })
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Error)
+            ) {
+                Text("Withdraw")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

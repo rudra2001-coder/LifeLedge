@@ -17,59 +17,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.rudra.lifeledge.ui.theme.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import org.koin.androidx.compose.koinViewModel
-import com.rudra.lifeledge.data.repository.FinanceRepository
-import com.rudra.lifeledge.data.local.entity.Transaction
-import com.rudra.lifeledge.data.local.entity.TransactionType
 import com.rudra.lifeledge.ui.screens.income.RecurringFrequency
-
-data class ExpenseUiState(
-    val amount: String = "",
-    val selectedCategory: ExpenseCategory? = null,
-    val description: String = "",
-    val selectedDate: LocalDate = LocalDate.now(),
-    val paymentMethod: PaymentMethod = PaymentMethod.CASH,
-    val isRecurring: Boolean = false,
-    val recurringFrequency: RecurringFrequency = RecurringFrequency.MONTHLY,
-    val isLoading: Boolean = false,
-    val isSuccess: Boolean = false
-)
-
-enum class ExpenseCategory(val title: String, val icon: ImageVector, val color: Color) {
-    FOOD("Food & Dining", Icons.Default.Restaurant, Color(0xFFEF4444)),
-    TRANSPORT("Transport", Icons.Default.DirectionsCar, Color(0xFF3B82F6)),
-    SHOPPING("Shopping", Icons.Default.ShoppingBag, Color(0xFFEC4899)),
-    ENTERTAINMENT("Entertainment", Icons.Default.Movie, Color(0xFF8B5CF6)),
-    BILLS("Bills & Utilities", Icons.Default.Receipt, Color(0xFFF59E0B)),
-    HEALTH("Health", Icons.Default.LocalHospital, Color(0xFF22C55E)),
-    EDUCATION("Education", Icons.Default.School, Color(0xFF06B6D4)),
-    PERSONAL("Personal Care", Icons.Default.Spa, Color(0xFFF97316)),
-    GIFT("Gifts & Donations", Icons.Default.CardGiftcard, Color(0xFFE11D48)),
-    OTHER("Other", Icons.Default.MoreHoriz, Color(0xFF6B7280))
-}
-
-enum class PaymentMethod(val title: String, val icon: ImageVector) {
-    CASH("Cash", Icons.Default.AccountBalanceWallet),
-    BANK("Bank Transfer", Icons.Default.AccountBalance),
-    MOBILE_BANKING("Mobile Banking", Icons.Default.PhoneAndroid),
-    CREDIT_CARD("Credit Card", Icons.Default.CreditCard),
-    DEBIT_CARD("Debit Card", Icons.Default.CreditScore)
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,8 +106,10 @@ fun ExpenseScreen(
                 ExpenseRecurringCard(
                     isRecurring = uiState.isRecurring,
                     frequency = uiState.recurringFrequency,
+                    recurringDay = uiState.recurringDay,
                     onToggleRecurring = { viewModel.toggleRecurring() },
-                    onFrequencyChange = { viewModel.updateFrequency(it) }
+                    onFrequencyChange = { viewModel.updateFrequency(it) },
+                    onDayChange = { viewModel.updateRecurringDay(it) }
                 )
             }
 
@@ -437,8 +396,10 @@ fun ExpenseDateCard(
 fun ExpenseRecurringCard(
     isRecurring: Boolean,
     frequency: RecurringFrequency,
+    recurringDay: Int,
     onToggleRecurring: () -> Unit,
-    onFrequencyChange: (RecurringFrequency) -> Unit
+    onFrequencyChange: (RecurringFrequency) -> Unit,
+    onDayChange: (Int) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -487,74 +448,20 @@ fun ExpenseRecurringCard(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-class ExpenseViewModel(
-    private val financeRepository: FinanceRepository
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(ExpenseUiState())
-    val uiState: StateFlow<ExpenseUiState> = _uiState.asStateFlow()
-
-    fun updateAmount(amount: String) {
-        _uiState.value = _uiState.value.copy(amount = amount)
-    }
-
-    fun updateCategory(category: ExpenseCategory) {
-        _uiState.value = _uiState.value.copy(selectedCategory = category)
-    }
-
-    fun updateDescription(description: String) {
-        _uiState.value = _uiState.value.copy(description = description)
-    }
-
-    fun updateDate(date: LocalDate) {
-        _uiState.value = _uiState.value.copy(selectedDate = date)
-    }
-
-    fun updatePaymentMethod(method: PaymentMethod) {
-        _uiState.value = _uiState.value.copy(paymentMethod = method)
-    }
-
-    fun toggleRecurring() {
-        _uiState.value = _uiState.value.copy(isRecurring = !_uiState.value.isRecurring)
-    }
-
-    fun updateFrequency(frequency: RecurringFrequency) {
-        _uiState.value = _uiState.value.copy(recurringFrequency = frequency)
-    }
-
-    fun saveExpense() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                val amountValue = _uiState.value.amount.toDoubleOrNull() ?: 0.0
-                if (amountValue > 0) {
-                    val transaction = Transaction(
-                        date = _uiState.value.selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                        amount = amountValue,
-                        type = TransactionType.EXPENSE,
-                        categoryId = 0L,
-                        accountId = 1L, // Default account
-                        toAccountId = null,
-                        payee = null,
-                        notes = _uiState.value.description,
-                        isRecurring = _uiState.value.isRecurring,
-                        recurringId = null,
-                        isCleared = true,
-                        attachment = null,
-                        location = null,
-                        tags = _uiState.value.selectedCategory?.name ?: ""
+                if (frequency == RecurringFrequency.MONTHLY) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "Day of month: $recurringDay",
+                        style = MaterialTheme.typography.bodyMedium
                     )
-                    financeRepository.saveTransaction(transaction)
-                    _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
-                } else {
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    Slider(
+                        value = recurringDay.toFloat(),
+                        onValueChange = { onDayChange(it.toInt()) },
+                        valueRange = 1f..28f,
+                        steps = 26,
+                        colors = SliderDefaults.colors(thumbColor = Primary, activeTrackColor = Primary)
+                    )
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }

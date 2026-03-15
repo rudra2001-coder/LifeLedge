@@ -16,6 +16,7 @@ import com.rudra.lifeledge.data.local.entity.EMIPayment
 import com.rudra.lifeledge.data.local.entity.CreditCard
 import com.rudra.lifeledge.data.local.entity.TransactionType
 import com.rudra.lifeledge.data.local.entity.AccountType
+import com.rudra.lifeledge.data.local.entity.Frequency
 import kotlinx.coroutines.flow.Flow
 
 class FinanceRepository(
@@ -75,6 +76,9 @@ class FinanceRepository(
     fun getActiveRecurringTransactions(): Flow<List<RecurringTransaction>> =
         recurringTransactionDao.getActiveRecurringTransactions()
 
+    fun getAllRecurringTransactions(): Flow<List<RecurringTransaction>> =
+        recurringTransactionDao.getAllRecurringTransactions()
+
     suspend fun saveRecurringTransaction(recurringTransaction: RecurringTransaction): Long =
         recurringTransactionDao.insertRecurringTransaction(recurringTransaction)
 
@@ -117,6 +121,7 @@ class FinanceRepository(
             notes = note,
             isRecurring = false,
             recurringId = null,
+            cardId = null,
             isCleared = true,
             attachment = null,
             location = null,
@@ -137,6 +142,7 @@ class FinanceRepository(
             notes = note,
             isRecurring = false,
             recurringId = null,
+            cardId = null,
             isCleared = true,
             attachment = null,
             location = null,
@@ -157,6 +163,7 @@ class FinanceRepository(
             notes = note,
             isRecurring = false,
             recurringId = null,
+            cardId = null,
             isCleared = true,
             attachment = null,
             location = null,
@@ -177,6 +184,7 @@ class FinanceRepository(
             notes = note,
             isRecurring = false,
             recurringId = null,
+            cardId = null,
             isCleared = true,
             attachment = null,
             location = null,
@@ -184,4 +192,91 @@ class FinanceRepository(
         )
         transactionDao.insertTransaction(transaction)
     }
+
+    suspend fun getDueRecurringTransactions(date: String): List<RecurringTransaction> =
+        recurringTransactionDao.getDueRecurringTransactions(date)
+
+    suspend fun getRecurringTransactionsForDate(date: String): List<RecurringTransaction> =
+        recurringTransactionDao.getRecurringTransactionsForDate(date)
+
+    suspend fun updateRecurringTransaction(recurringTransaction: RecurringTransaction) =
+        recurringTransactionDao.updateRecurringTransaction(recurringTransaction)
+
+    suspend fun deleteRecurringTransaction(recurringTransaction: RecurringTransaction) =
+        recurringTransactionDao.deleteRecurringTransaction(recurringTransaction)
+
+    suspend fun setRecurringActive(id: Long, isActive: Boolean) =
+        recurringTransactionDao.setActive(id, isActive)
+
+    suspend fun processRecurringTransaction(
+        recurringTransaction: RecurringTransaction,
+        currentDate: String
+    ): Transaction {
+        val transaction = Transaction(
+            date = currentDate,
+            amount = recurringTransaction.amount,
+            type = recurringTransaction.type,
+            categoryId = recurringTransaction.categoryId,
+            accountId = recurringTransaction.accountId,
+            toAccountId = null,
+            payee = recurringTransaction.payee,
+            notes = recurringTransaction.notes,
+            isRecurring = true,
+            recurringId = recurringTransaction.id,
+            cardId = null,
+            isCleared = true,
+            attachment = null,
+            location = null,
+            tags = ""
+        )
+        val transactionId = transactionDao.insertTransaction(transaction)
+
+        val nextDate = calculateNextDate(
+            currentDate,
+            recurringTransaction.frequency,
+            recurringTransaction.interval,
+            recurringTransaction.executeDay
+        )
+        val updatedRecurring = recurringTransaction.copy(
+            nextDate = nextDate,
+            lastExecutedDate = currentDate
+        )
+        recurringTransactionDao.updateRecurringTransaction(updatedRecurring)
+
+        return transaction.copy(id = transactionId)
+    }
+
+    private fun calculateNextDate(
+        currentDate: String,
+        frequency: Frequency,
+        interval: Int,
+        executeDay: Int?
+    ): String {
+        val today = java.time.LocalDate.parse(currentDate)
+        return when (frequency) {
+            Frequency.DAILY -> today.plusDays(interval.toLong())
+            Frequency.WEEKLY -> today.plusWeeks(interval.toLong())
+            Frequency.MONTHLY -> {
+                if (executeDay != null) {
+                    val nextMonth = today.plusMonths(interval.toLong())
+                    val dayOfMonth = minOf(executeDay, nextMonth.lengthOfMonth())
+                    nextMonth.withDayOfMonth(dayOfMonth)
+                } else {
+                    today.plusMonths(interval.toLong())
+                }
+            }
+            Frequency.YEARLY -> today.plusYears(interval.toLong())
+        }.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
+    }
+
+    suspend fun getRecurringTransaction(id: Long): RecurringTransaction? =
+        recurringTransactionDao.getRecurringTransaction(id)
+
+    // Daily totals
+    fun getDailyIncome(date: String): Flow<Double> = transactionDao.getDailyIncome(date)
+    fun getDailyExpense(date: String): Flow<Double> = transactionDao.getDailyExpense(date)
+
+    // Expense by category
+    fun getExpensesByCategory(startDate: String, endDate: String): Flow<List<CategoryTotal>> =
+        transactionDao.getExpensesByCategory(startDate, endDate)
 }

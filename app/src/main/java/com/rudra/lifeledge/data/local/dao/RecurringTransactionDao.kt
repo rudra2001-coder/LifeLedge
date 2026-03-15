@@ -15,12 +15,21 @@ interface RecurringTransactionDao {
     @Query("SELECT * FROM recurring_transactions ORDER BY nextDate")
     fun getAllRecurringTransactions(): Flow<List<RecurringTransaction>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertRecurringTransaction(recurringTransaction: RecurringTransaction): Long
+    @Query("SELECT * FROM recurring_transactions WHERE isActive = 1 AND nextDate <= :date AND (lastExecutedDate IS NULL OR lastExecutedDate < :date)")
+    suspend fun getDueRecurringTransactions(date: String): List<RecurringTransaction>
+
+    @Query("SELECT * FROM recurring_transactions WHERE isActive = 1 AND nextDate = :date")
+    suspend fun getRecurringTransactionsForDate(date: String): List<RecurringTransaction>
 
     @Update
     suspend fun updateRecurringTransaction(recurringTransaction: RecurringTransaction)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRecurringTransaction(recurringTransaction: RecurringTransaction): Long
+
     @Delete
     suspend fun deleteRecurringTransaction(recurringTransaction: RecurringTransaction)
+
+    @Query("UPDATE recurring_transactions SET isActive = :isActive WHERE id = :id")
+    suspend fun setActive(id: Long, isActive: Boolean)
 }

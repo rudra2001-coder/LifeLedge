@@ -18,6 +18,9 @@ interface HabitCompletionDao {
     @Query("SELECT * FROM habit_completions WHERE habitId = :habitId ORDER BY date DESC")
     fun getCompletionsForHabit(habitId: Long): Flow<List<HabitCompletion>>
 
+    @Query("SELECT * FROM habit_completions WHERE habitId = :habitId ORDER BY date DESC")
+    suspend fun getAllCompletionsForHabit(habitId: Long): List<HabitCompletion>
+
     @Query("SELECT * FROM habit_completions WHERE date BETWEEN :startDate AND :endDate")
     fun getCompletionsBetween(startDate: String, endDate: String): Flow<List<HabitCompletion>>
 

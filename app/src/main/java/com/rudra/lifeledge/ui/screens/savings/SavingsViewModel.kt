@@ -18,7 +18,10 @@ data class SavingsUiState(
     val selectedTab: Int = 0,
     val showAddGoalDialog: Boolean = false,
     val showAddSavingsDialog: Boolean = false,
-    val isLoading: Boolean = true
+    val showWithdrawDialog: Boolean = false,
+    val withdrawingGoal: SavingGoal? = null,
+    val isLoading: Boolean = true,
+    val recentlyDeletedGoal: SavingGoal? = null
 )
 
 
@@ -41,11 +44,11 @@ class SavingsViewModel(
                 savingRepository.getRecentTransactions(20),
                 savingRepository.getTotalSavings(),
                 savingRepository.getGeneralSavingsBalance()
-            ) { activeGoals, completedGoals, transactions, totalSavings, generalSavings ->
+            ) { activeGoals: List<SavingGoal>, completedGoals: List<SavingGoal>, transactions: List<SavingTransaction>, totalSavings: Double?, generalSavings: Double? ->
                 SavingsUiState(
                     activeGoals = activeGoals,
                     completedGoals = completedGoals,
-                    recentTransactions = transactions,
+                    recentTransactions = transactions.take(20),
                     totalSavings = totalSavings ?: 0.0,
                     generalSavings = generalSavings ?: 0.0,
                     isLoading = false
@@ -80,6 +83,14 @@ class SavingsViewModel(
         _uiState.value = _uiState.value.copy(showAddSavingsDialog = false)
     }
 
+    fun showWithdrawDialog(goal: SavingGoal) {
+        _uiState.value = _uiState.value.copy(showWithdrawDialog = true, withdrawingGoal = goal)
+    }
+
+    fun hideWithdrawDialog() {
+        _uiState.value = _uiState.value.copy(showWithdrawDialog = false, withdrawingGoal = null)
+    }
+
     fun createGoal(title: String, targetAmount: Double, priority: String, icon: String, color: Long) {
         viewModelScope.launch {
             savingRepository.addGoal(title, targetAmount, priority, icon, color)
@@ -87,13 +98,40 @@ class SavingsViewModel(
         }
     }
 
-    fun addSaving(amount: Double, goalId: Long?, note: String?) {
+    fun addSaving(amount: Double, goalId: Long?, note: String?, source: String = "CASH") {
         viewModelScope.launch {
             // Create transaction that reduces net balance and increases savings
             financeRepository.addSaving(amount, note)
             // Also add to goal-specific savings if applicable
-            savingRepository.addSaving(amount, goalId, note)
+            savingRepository.addSaving(amount, goalId, note, source)
             hideAddSavingsDialog()
         }
+    }
+
+    fun withdrawFromGoal(amount: Double, goalId: Long, note: String?) {
+        viewModelScope.launch {
+            savingRepository.withdrawFromGoal(amount, goalId, note)
+            hideWithdrawDialog()
+        }
+    }
+
+    fun deleteGoal(goal: SavingGoal) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(recentlyDeletedGoal = goal)
+            savingRepository.deleteGoal(goal)
+        }
+    }
+
+    fun undoDeleteGoal() {
+        viewModelScope.launch {
+            _uiState.value.recentlyDeletedGoal?.let { goal ->
+                savingRepository.createGoal(goal)
+                _uiState.value = _uiState.value.copy(recentlyDeletedGoal = null)
+            }
+        }
+    }
+
+    fun clearDeletedGoal() {
+        _uiState.value = _uiState.value.copy(recentlyDeletedGoal = null)
     }
 }

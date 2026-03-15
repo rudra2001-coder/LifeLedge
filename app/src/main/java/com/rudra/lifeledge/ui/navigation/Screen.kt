@@ -33,4 +33,7 @@ sealed class Screen(val route: String) {
     object Export : Screen("export")
     object More : Screen("more")
     object Goal : Screen("add_goal")
+    object RecurringTransactions : Screen("recurring_transactions")
+    object Cards : Screen("cards")
+    object Calendar : Screen("calendar")
 }

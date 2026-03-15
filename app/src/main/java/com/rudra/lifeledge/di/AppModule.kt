@@ -17,6 +17,9 @@ import com.rudra.lifeledge.ui.screens.finance.FinanceViewModel
 import com.rudra.lifeledge.ui.screens.transfer.TransferViewModel
 import com.rudra.lifeledge.ui.screens.settings.ExportViewModel
 import com.rudra.lifeledge.ui.screens.reports.ReportsViewModel
+import com.rudra.lifeledge.ui.screens.recurring.RecurringTransactionsViewModel
+import com.rudra.lifeledge.ui.screens.cards.CardsViewModel
+import com.rudra.lifeledge.ui.screens.calendar.CalendarViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -45,6 +48,8 @@ val databaseModule = module {
     single { get<LifeLedgerDatabase>().smartAdviceLogDao() }
     single { get<LifeLedgerDatabase>().savingGoalDao() }
     single { get<LifeLedgerDatabase>().savingTransactionDao() }
+    single { get<LifeLedgerDatabase>().cardDao() }
+    single { get<LifeLedgerDatabase>().activityLogDao() }
 }
 
 val repositoryModule = module {
@@ -55,6 +60,8 @@ val repositoryModule = module {
     single { GoalRepository(get(), get()) }
     single { SettingsRepository(get(), get(), get()) }
     single { SavingRepository(get(), get()) }
+    single { CardRepository(get()) }
+    single { ActivityLogRepository(get()) }
     single { BackupManager(androidContext()) }
     viewModel { DashboardViewModel(get(), get(), get(), get()) }
     viewModel { GoalsViewModel(get()) }
@@ -69,7 +76,10 @@ val repositoryModule = module {
     viewModel { FinanceViewModel(get()) }
     viewModel { TransferViewModel(get()) }
     viewModel { ExportViewModel() }
-    viewModel { ReportsViewModel() }
+    viewModel { ReportsViewModel(get()) }
+    viewModel { RecurringTransactionsViewModel(get()) }
+    viewModel { CardsViewModel(get()) }
+    viewModel { CalendarViewModel(get(), get(), get()) }
 }
 
 val appModules = listOf(databaseModule, repositoryModule)

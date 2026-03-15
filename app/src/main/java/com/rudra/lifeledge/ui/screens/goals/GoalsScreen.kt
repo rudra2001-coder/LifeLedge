@@ -16,28 +16,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.rudra.lifeledge.data.local.entity.Goal
-import com.rudra.lifeledge.data.local.entity.GoalType
-import com.rudra.lifeledge.data.repository.GoalRepository
 import com.rudra.lifeledge.ui.theme.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-
-
-data class GoalsUiState(
-    val activeGoals: List<Goal> = emptyList(),
-    val completedGoals: List<Goal> = emptyList(),
-    val selectedTab: Int = 0,
-    val isLoading: Boolean = true
-)
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +28,22 @@ fun GoalsScreen(
     viewModel: GoalsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.recentlyDeletedGoal) {
+        uiState.recentlyDeletedGoal?.let {
+            val result = snackbarHostState.showSnackbar(
+                message = "Goal deleted",
+                actionLabel = "UNDO",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDeleteGoal()
+            } else {
+                viewModel.clearDeletedGoal()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -63,7 +61,8 @@ fun GoalsScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Goal", tint = Color.White)
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -99,7 +98,7 @@ fun GoalsScreen(
                     }
                 } else {
                     items(goals) { goal ->
-                        GoalCard(goal = goal)
+                        GoalCard(goal = goal, onDelete = { viewModel.deleteGoal(goal) })
                     }
                 }
                 item { Spacer(modifier = Modifier.height(80.dp)) }
@@ -109,7 +108,8 @@ fun GoalsScreen(
 }
 
 @Composable
-fun GoalCard(goal: Goal) {
+fun GoalCard(goal: Goal, onDelete: () -> Unit) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val progress = (goal.currentValue / goal.targetValue).coerceIn(0.0, 1.0).toFloat()
     val goalColor = Color(goal.color)
 
@@ -151,12 +151,22 @@ fun GoalCard(goal: Goal) {
                         )
                     }
                 }
-                if (goal.isCompleted) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = "Completed",
-                        tint = Success
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (goal.isCompleted) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Completed",
+                            tint = Success
+                        )
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            modifier = Modifier.size(18.dp),
+                            tint = Error.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
 
@@ -199,6 +209,24 @@ fun GoalCard(goal: Goal) {
             )
         }
     }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Goal") },
+            text = { Text("Are you sure you want to delete \"${goal.title}\"?") },
+            confirmButton = {
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text("Delete", color = Error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -219,44 +247,5 @@ fun EmptyStateCard(message: String) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
-}
-
-class GoalsViewModel(
-    private val goalRepository: GoalRepository
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(GoalsUiState())
-    val uiState: StateFlow<GoalsUiState> = _uiState.asStateFlow()
-
-    init {
-        loadData()
-    }
-
-    fun loadData() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-
-            launch {
-                goalRepository.getActiveGoals().collect { active ->
-                    _uiState.value = _uiState.value.copy(
-                        activeGoals = active,
-                        isLoading = false
-                    )
-                }
-            }
-
-            launch {
-                goalRepository.getCompletedGoals().collect { completed ->
-                    _uiState.value = _uiState.value.copy(
-                        completedGoals = completed,
-                        isLoading = false
-                    )
-                }
-            }
-        }
-    }
-
-    fun selectTab(index: Int) {
-        _uiState.value = _uiState.value.copy(selectedTab = index)
     }
 }

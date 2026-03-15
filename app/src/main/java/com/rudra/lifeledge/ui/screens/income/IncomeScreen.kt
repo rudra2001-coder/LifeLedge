@@ -17,53 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
-import com.rudra.lifeledge.data.local.entity.TransactionType
 import com.rudra.lifeledge.ui.theme.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import org.koin.androidx.compose.koinViewModel
-import com.rudra.lifeledge.data.repository.FinanceRepository
-import com.rudra.lifeledge.data.local.entity.Transaction
-
-data class IncomeUiState(
-    val amount: String = "",
-    val selectedSource: IncomeSource? = null,
-    val description: String = "",
-    val selectedDate: LocalDate = LocalDate.now(),
-    val isRecurring: Boolean = false,
-    val recurringFrequency: RecurringFrequency = RecurringFrequency.MONTHLY,
-    val isLoading: Boolean = false,
-    val isSuccess: Boolean = false
-)
-
-enum class IncomeSource(val title: String, val icon: ImageVector, val color: Color) {
-    SALARY("Salary", Icons.Default.Work, Color(0xFF22C55E)),
-    FREELANCE("Freelance", Icons.Default.LaptopMac, Color(0xFF3B82F6)),
-    INVESTMENT("Investment", Icons.Default.TrendingUp, Color(0xFF8B5CF6)),
-    BUSINESS("Business", Icons.Default.Store, Color(0xFFF59E0B)),
-    GIFT("Gift", Icons.Default.CardGiftcard, Color(0xFFEC4899)),
-    RENTAL("Rental", Icons.Default.Home, Color(0xFF06B6D4)),
-    OTHER("Other", Icons.Default.MoreHoriz, Color(0xFF6B7280))
-}
-
-enum class RecurringFrequency(val title: String) {
-    DAILY("Daily"),
-    WEEKLY("Weekly"),
-    MONTHLY("Monthly"),
-    YEARLY("Yearly")
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -136,8 +98,10 @@ fun IncomeScreen(
                 RecurringCard(
                     isRecurring = uiState.isRecurring,
                     frequency = uiState.recurringFrequency,
+                    recurringDay = uiState.recurringDay,
                     onToggleRecurring = { viewModel.toggleRecurring() },
-                    onFrequencyChange = { viewModel.updateFrequency(it) }
+                    onFrequencyChange = { viewModel.updateFrequency(it) },
+                    onDayChange = { viewModel.updateRecurringDay(it) }
                 )
             }
 
@@ -377,8 +341,10 @@ fun DateSelectionCard(
 fun RecurringCard(
     isRecurring: Boolean,
     frequency: RecurringFrequency,
+    recurringDay: Int,
     onToggleRecurring: () -> Unit,
-    onFrequencyChange: (RecurringFrequency) -> Unit
+    onFrequencyChange: (RecurringFrequency) -> Unit,
+    onDayChange: (Int) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -427,70 +393,20 @@ fun RecurringCard(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-class IncomeViewModel(
-    private val financeRepository: FinanceRepository
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(IncomeUiState())
-    val uiState: StateFlow<IncomeUiState> = _uiState.asStateFlow()
-
-    fun updateAmount(amount: String) {
-        _uiState.value = _uiState.value.copy(amount = amount)
-    }
-
-    fun updateSource(source: IncomeSource) {
-        _uiState.value = _uiState.value.copy(selectedSource = source)
-    }
-
-    fun updateDescription(description: String) {
-        _uiState.value = _uiState.value.copy(description = description)
-    }
-
-    fun updateDate(date: LocalDate) {
-        _uiState.value = _uiState.value.copy(selectedDate = date)
-    }
-
-    fun toggleRecurring() {
-        _uiState.value = _uiState.value.copy(isRecurring = !_uiState.value.isRecurring)
-    }
-
-    fun updateFrequency(frequency: RecurringFrequency) {
-        _uiState.value = _uiState.value.copy(recurringFrequency = frequency)
-    }
-
-    fun saveIncome() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                val amountValue = _uiState.value.amount.toDoubleOrNull() ?: 0.0
-                if (amountValue > 0) {
-                    val transaction = Transaction(
-                        date = _uiState.value.selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                        amount = amountValue,
-                        type = TransactionType.INCOME,
-                        categoryId = 0L,
-                        accountId = 1L, // Default account
-                        toAccountId = null,
-                        payee = null,
-                        notes = _uiState.value.description,
-                        isRecurring = _uiState.value.isRecurring,
-                        recurringId = null,
-                        isCleared = true,
-                        attachment = null,
-                        location = null,
-                        tags = _uiState.value.selectedSource?.name ?: ""
+                if (frequency == RecurringFrequency.MONTHLY) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "Day of month: $recurringDay",
+                        style = MaterialTheme.typography.bodyMedium
                     )
-                    financeRepository.saveTransaction(transaction)
-                    _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
-                } else {
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    Slider(
+                        value = recurringDay.toFloat(),
+                        onValueChange = { onDayChange(it.toInt()) },
+                        valueRange = 1f..28f,
+                        steps = 26,
+                        colors = SliderDefaults.colors(thumbColor = Primary, activeTrackColor = Primary)
+                    )
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }

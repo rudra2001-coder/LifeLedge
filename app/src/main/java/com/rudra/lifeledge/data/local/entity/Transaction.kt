@@ -25,6 +25,7 @@ data class Transaction(
     val notes: String?,
     val isRecurring: Boolean,
     val recurringId: Long?,
+    val cardId: Long?,
     val isCleared: Boolean,
     val attachment: String?,
     val location: String?,

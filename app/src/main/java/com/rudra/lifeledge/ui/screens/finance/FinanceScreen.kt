@@ -17,35 +17,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.rudra.lifeledge.data.local.entity.Account
 import com.rudra.lifeledge.data.local.entity.Transaction
 import com.rudra.lifeledge.data.local.entity.TransactionType
-import com.rudra.lifeledge.data.repository.FinanceRepository
 import com.rudra.lifeledge.ui.navigation.Screen
 import com.rudra.lifeledge.ui.screens.savings.EmptyStateCard
 import com.rudra.lifeledge.ui.theme.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
 import org.koin.androidx.compose.koinViewModel
-
-data class FinanceUiState(
-    val accounts: List<Account> = emptyList(),
-    val transactions: List<Transaction> = emptyList(),
-    val totalBalance: Double = 0.0,
-    val monthlyIncome: Double = 0.0,
-    val monthlyExpense: Double = 0.0,
-    val selectedTab: Int = 0,
-    val isLoading: Boolean = true
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +37,22 @@ fun FinanceScreen(
     viewModel: FinanceViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.recentlyDeletedTransaction) {
+        uiState.recentlyDeletedTransaction?.let {
+            val result = snackbarHostState.showSnackbar(
+                message = "Transaction deleted",
+                actionLabel = "UNDO",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDeleteTransaction()
+            } else {
+                viewModel.clearDeletedTransaction()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -63,7 +62,8 @@ fun FinanceScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -103,7 +103,7 @@ fun FinanceScreen(
 
             when (uiState.selectedTab) {
                 0 -> AccountsTab(accounts = uiState.accounts)
-                1 -> TransactionsTab(transactions = uiState.transactions)
+                1 -> TransactionsTab(transactions = uiState.transactions, onDelete = { viewModel.deleteTransaction(it) })
                 2 -> BudgetTab()
             }
         }
@@ -321,7 +321,7 @@ fun AccountCard(account: Account) {
 }
 
 @Composable
-fun TransactionsTab(transactions: List<Transaction>) {
+fun TransactionsTab(transactions: List<Transaction>, onDelete: (Transaction) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -333,14 +333,16 @@ fun TransactionsTab(transactions: List<Transaction>) {
             }
         } else {
             items(transactions) { transaction ->
-                TransactionItem(transaction = transaction)
+                TransactionItem(transaction = transaction, onDelete = { onDelete(transaction) })
             }
         }
     }
 }
 
 @Composable
-fun TransactionItem(transaction: Transaction) {
+fun TransactionItem(transaction: Transaction, onDelete: () -> Unit) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -376,24 +378,63 @@ fun TransactionItem(transaction: Transaction) {
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    transaction.payee ?: "Unknown",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        transaction.payee ?: "Unknown",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    if (transaction.isRecurring) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            Icons.Default.Repeat,
+                            contentDescription = "Recurring",
+                            modifier = Modifier.size(14.dp),
+                            tint = Primary
+                        )
+                    }
+                }
                 Text(
                     transaction.date,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                "${if (transaction.type == TransactionType.EXPENSE) "-" else "+"}${formatCurrency(transaction.amount)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (transaction.type == TransactionType.EXPENSE) Error else Success
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${if (transaction.type == TransactionType.EXPENSE) "-" else "+"}${formatCurrency(transaction.amount)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (transaction.type == TransactionType.EXPENSE) Error else Success
+                )
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        modifier = Modifier.size(18.dp),
+                        tint = Error.copy(alpha = 0.7f)
+                    )
+                }
+            }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Transaction") },
+            text = { Text("Are you sure you want to delete this transaction?") },
+            confirmButton = {
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text("Delete", color = Error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -417,59 +458,7 @@ fun BudgetTab() {
     }
 }
 
-@Composable
-fun EmptyStateCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
 fun formatCurrency(amount: Double): String {
     val format = NumberFormat.getCurrencyInstance(Locale("en", "BD"))
     return format.format(amount)
-}
-
-class FinanceViewModel(
-    private val financeRepository: FinanceRepository
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(FinanceUiState())
-    val uiState: StateFlow<FinanceUiState> = _uiState.asStateFlow()
-
-    init {
-        loadData()
-    }
-
-    fun loadData() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val today = LocalDate.now()
-            val monthStart = today.withDayOfMonth(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val monthEnd = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-
-            _uiState.value = _uiState.value.copy(
-                totalBalance = 45200.0,
-                monthlyIncome = 52000.0,
-                monthlyExpense = 31500.0,
-                isLoading = false
-            )
-        }
-    }
-
-    fun selectTab(index: Int) {
-        _uiState.value = _uiState.value.copy(selectedTab = index)
-    }
 }

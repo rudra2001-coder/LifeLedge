@@ -79,6 +79,13 @@ interface TransactionDao {
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'SAVE' AND date BETWEEN :startDate AND :endDate")
     fun getMonthlySaved(startDate: String, endDate: String): Flow<Double>
 
+    // Daily totals
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'INCOME' AND date = :date")
+    fun getDailyIncome(date: String): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'EXPENSE' AND date = :date")
+    fun getDailyExpense(date: String): Flow<Double>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: Transaction): Long
 

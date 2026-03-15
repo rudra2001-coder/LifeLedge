@@ -11,32 +11,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.rudra.lifeledge.ui.theme.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-
-data class ReportsUiState(
-    val selectedReportType: ReportType = ReportType.WEEKLY,
-    val isLoading: Boolean = false
-)
-
-enum class ReportType(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    DAILY("Daily", Icons.Default.Today),
-    WEEKLY("Weekly", Icons.Default.DateRange),
-    MONTHLY("Monthly", Icons.Default.CalendarMonth),
-    YEARLY("Yearly", Icons.Default.Assessment)
-}
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(
     navController: NavController,
-    viewModel: ReportsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: ReportsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -311,14 +294,5 @@ fun ReportRow(label: String, value: String, color: Color) {
             fontWeight = FontWeight.Bold,
             color = color
         )
-    }
-}
-
-class ReportsViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(ReportsUiState())
-    val uiState: StateFlow<ReportsUiState> = _uiState.asStateFlow()
-
-    fun selectReportType(type: ReportType) {
-        _uiState.value = _uiState.value.copy(selectedReportType = type)
     }
 }

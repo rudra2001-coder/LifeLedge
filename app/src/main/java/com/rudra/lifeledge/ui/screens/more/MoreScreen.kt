@@ -42,9 +42,10 @@ val financialSection = MoreSection(
         MoreMenuItem("expense", "Add Expense", "Track your spending", Icons.Default.TrendingDown, Error, Screen.Expense.route),
         MoreMenuItem("savings", "Savings", "Manage savings goals", Icons.Default.Savings, Secondary, Screen.Savings.route),
         MoreMenuItem("transfer", "Transfer", "Move money", Icons.Default.SwapHoriz, Color(0xFF6366F1), Screen.Transfer.route),
+        MoreMenuItem("cards", "Cards & Wallets", "Manage cards", Icons.Default.CreditCard, Color(0xFFEC4899), Screen.Cards.route),
         MoreMenuItem("accounts", "Accounts", "Manage bank accounts", Icons.Default.AccountBalance, Color(0xFFEC4899), Screen.Finance.route),
         MoreMenuItem("budgets", "Budgets", "Set spending limits", Icons.Default.PieChart, Color(0xFFF97316), Screen.Finance.route),
-        MoreMenuItem("recurring", "Recurring", "Auto transactions", Icons.Default.Repeat, Color(0xFF8B5CF6), Screen.Finance.route),
+        MoreMenuItem("recurring", "Recurring Transactions", "Auto transactions", Icons.Default.Repeat, Color(0xFF8B5CF6), Screen.RecurringTransactions.route),
         MoreMenuItem("loans", "Loans & EMI", "Track debts", Icons.Default.CreditCard, Color(0xFFEF4444), Screen.Finance.route)
     )
 )
@@ -57,7 +58,7 @@ val generalSection = MoreSection(
         MoreMenuItem("journal", "Journal", "Reflect & write", Icons.Default.Book, Color(0xFF8B5CF6), Screen.Journal.route),
         MoreMenuItem("goals", "Goals", "Set & achieve goals", Icons.Default.Flag, Color(0xFFF59E0B), Screen.Goals.route),
         MoreMenuItem("reports", "Reports", "Analytics & insights", Icons.Default.Analytics, Color(0xFF06B6D4), Screen.Reports.route),
-        MoreMenuItem("calendar", "Calendar", "View all events", Icons.Default.CalendarMonth, Color(0xFF14B8A6), Screen.Dashboard.route)
+        MoreMenuItem("calendar", "Calendar", "View all events", Icons.Default.CalendarMonth, Color(0xFF14B8A6), Screen.Calendar.route)
     )
 )
 

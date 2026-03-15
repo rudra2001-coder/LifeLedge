@@ -17,10 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.rudra.lifeledge.data.local.entity.RecurringTransaction
+import com.rudra.lifeledge.data.local.entity.TransactionType
 import com.rudra.lifeledge.ui.navigation.Screen
 import com.rudra.lifeledge.ui.theme.*
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
+import java.time.LocalDate
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,10 +92,37 @@ fun DashboardScreen(
             }
 
             item {
+                DailyBalanceCard(
+                    dailyIncome = uiState.dailyIncome,
+                    dailyExpense = uiState.dailyExpense,
+                    dailyNetBalance = uiState.dailyNetBalance
+                )
+            }
+
+            item {
+                ExpenseCategoriesCard(
+                    categories = uiState.expenseCategories
+                )
+            }
+
+            item {
                 WorkProgressCard(
                     weeklyHours = uiState.weeklyWorkHours,
                     targetHours = 40,
                     workLifeBalance = uiState.workLifeBalance
+                )
+            }
+
+            item {
+                WeeklyActivitiesCard(
+                    weeklyDays = uiState.weeklyWorkDays
+                )
+            }
+
+            item {
+                MonthlyWorkSummaryCard(
+                    workDays = uiState.monthlyWorkDays,
+                    extraHours = uiState.monthlyExtraHours
                 )
             }
 
@@ -109,6 +139,15 @@ fun DashboardScreen(
                     transactions = uiState.recentTransactions,
                     onViewAll = { navController.navigate(Screen.Finance.route) }
                 )
+            }
+
+            if (uiState.upcomingRecurring.isNotEmpty()) {
+                item {
+                    UpcomingRecurringCard(
+                        recurring = uiState.upcomingRecurring,
+                        onViewAll = { navController.navigate(Screen.RecurringTransactions.route) }
+                    )
+                }
             }
 
             item {
@@ -206,6 +245,250 @@ fun FinancialItem(title: String, value: String, color: Color) {
             fontWeight = FontWeight.Bold,
             color = color
         )
+    }
+}
+
+@Composable
+fun DailyBalanceCard(
+    dailyIncome: Double,
+    dailyExpense: Double,
+    dailyNetBalance: Double
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                "Today's Balance",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                FinancialItem(
+                    title = "Daily Income",
+                    value = formatCurrency(dailyIncome),
+                    color = Success
+                )
+                FinancialItem(
+                    title = "Daily Expense",
+                    value = formatCurrency(dailyExpense),
+                    color = Error
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                FinancialItem(
+                    title = "Daily Net Balance",
+                    value = formatCurrency(dailyNetBalance),
+                    color = if (dailyNetBalance >= 0) Success else Error
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ExpenseCategoriesCard(
+    categories: List<ExpenseCategoryUi>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                "Monthly Expenses by Category",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            if (categories.isEmpty()) {
+                Text(
+                    "No expense data",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                val maxAmount = categories.maxOfOrNull { it.total } ?: 1.0
+                categories.forEach { category ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            category.categoryName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            formatCurrency(category.total),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Error,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                    LinearProgressIndicator(
+                        progress = { (category.total / maxAmount).toFloat() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp)),
+                        color = Primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WeeklyActivitiesCard(
+    weeklyDays: List<WorkDayUi>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                "Weekly Activities",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                weeklyDays.forEach { day ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(
+                                    color = if (day.isWorkingDay) Success.copy(alpha = 0.2f)
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                day.dayName,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = if (day.isWorkingDay) FontWeight.Bold else FontWeight.Normal,
+                                color = if (day.isWorkingDay) Success else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            if (day.isWorkingDay) "${day.hoursWorked.toInt()}h" else "-",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (day.isWorkingDay) Success else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MonthlyWorkSummaryCard(
+    workDays: Int,
+    extraHours: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                "Monthly Work Summary",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "$workDays",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary
+                    )
+                    Text(
+                        "Work Days",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "${LocalDate.now().lengthOfMonth() - workDays}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Off Days",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "${extraHours}h",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Accent
+                    )
+                    Text(
+                        "Extra Hours",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -405,6 +688,98 @@ fun TransactionRow(transaction: TransactionUi) {
             fontWeight = FontWeight.Bold,
             color = if (transaction.isExpense) Error else Success
         )
+    }
+}
+
+@Composable
+fun UpcomingRecurringCard(
+    recurring: List<RecurringTransaction>,
+    onViewAll: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Primary.copy(alpha = 0.08f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Repeat,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Upcoming Recurring",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                TextButton(onClick = onViewAll) {
+                    Text("View All")
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            recurring.forEach { item ->
+                val isIncome = item.type == TransactionType.INCOME
+                val color = if (isIncome) Success else Error
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(color.copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (isIncome) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                item.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                "Next: ${item.nextDate}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Text(
+                        "${if (isIncome) "+" else "-"}৳${String.format("%.0f", item.amount)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = color
+                    )
+                }
+                if (item != recurring.last()) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                }
+            }
+        }
     }
 }
 
@@ -694,4 +1069,17 @@ data class GoalUi(
     val target: Double,
     val unit: String,
     val color: Int
+)
+
+data class ExpenseCategoryUi(
+    val categoryId: Long,
+    val categoryName: String,
+    val total: Double
+)
+
+data class WorkDayUi(
+    val date: String,
+    val dayName: String,
+    val isWorkingDay: Boolean,
+    val hoursWorked: Double
 )
