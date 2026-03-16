@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,6 +96,18 @@ fun JournalScreen(
                 SearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = { viewModel.updateSearchQuery(it) }
+                )
+            }
+
+            item {
+                HabitQuickViewCard()
+            }
+
+            item {
+                Text(
+                    "Journal Entries",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
@@ -276,3 +289,105 @@ fun EmptyStateCard(message: String) {
         }
     }
 }
+
+@Composable
+fun HabitQuickViewCard() {
+    val sampleHabits = listOf(
+        HabitItem("Morning Exercise", true, true),
+        HabitItem("Read 30 mins", false, true),
+        HabitItem("Meditation", true, false),
+        HabitItem("Drink Water", false, true),
+        HabitItem("No Social Media", true, true)
+    )
+    val completedCount = sampleHabits.count { it.completed }
+    val totalCount = sampleHabits.size
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Secondary.copy(alpha = 0.1f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Secondary.copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Secondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            "Today's Habits",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "$completedCount of $totalCount completed",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                CircularProgressIndicator(
+                    progress = { completedCount.toFloat() / totalCount },
+                    modifier = Modifier.size(48.dp),
+                    color = Secondary,
+                    trackColor = Secondary.copy(alpha = 0.2f),
+                    strokeWidth = 4.dp
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            sampleHabits.forEach { habit ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = habit.completed,
+                            onCheckedChange = { },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Secondary
+                            )
+                        )
+                        Text(
+                            habit.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (habit.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Icon(
+                        Icons.Default.Whatshot,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+data class HabitItem(
+    val name: String,
+    val completed: Boolean,
+    val streak: Boolean
+)

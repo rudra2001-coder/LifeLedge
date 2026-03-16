@@ -3,6 +3,7 @@ package com.rudra.lifeledge.data.repository
 import com.rudra.lifeledge.data.local.dao.AccountDao
 import com.rudra.lifeledge.data.local.dao.TransactionDao
 import com.rudra.lifeledge.data.local.dao.CategoryDao
+import com.rudra.lifeledge.data.local.dao.CategoryTotal
 import com.rudra.lifeledge.data.local.dao.RecurringTransactionDao
 import com.rudra.lifeledge.data.local.dao.LoanDao
 import com.rudra.lifeledge.data.local.dao.EMIPaymentDao

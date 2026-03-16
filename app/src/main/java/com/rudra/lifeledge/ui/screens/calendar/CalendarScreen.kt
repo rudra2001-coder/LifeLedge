@@ -124,33 +124,62 @@ fun CalendarScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            MonthSelector(
-                currentMonth = uiState.currentMonth,
-                onPreviousMonth = { viewModel.previousMonth() },
-                onNextMonth = { viewModel.nextMonth() }
-            )
+            item { Spacer(modifier = Modifier.height(8.dp)) }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        MonthSelector(
+                            currentMonth = uiState.currentMonth,
+                            onPreviousMonth = { viewModel.previousMonth() },
+                            onNextMonth = { viewModel.nextMonth() }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        CalendarGrid(
+                            currentMonth = uiState.currentMonth,
+                            selectedDate = uiState.selectedDate,
+                            datesWithActivities = uiState.datesWithActivities,
+                            onDateSelected = { viewModel.selectDate(it) }
+                        )
+                    }
+                }
+            }
 
-            CalendarGrid(
-                currentMonth = uiState.currentMonth,
-                selectedDate = uiState.selectedDate,
-                datesWithActivities = uiState.datesWithActivities,
-                onDateSelected = { viewModel.selectDate(it) }
-            )
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        DayActivitiesList(
+                            selectedDate = uiState.selectedDate,
+                            activities = uiState.selectedDateActivities
+                        )
+                    }
+                }
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                ActivityLegendCard()
+            }
 
-            DayActivitiesList(
-                selectedDate = uiState.selectedDate,
-                activities = uiState.selectedDateActivities
-            )
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
         }
     }
 }
@@ -385,6 +414,51 @@ fun getActivityColor(type: ActivityType): Color {
         ActivityType.JOURNAL_ENTRY -> Color(0xFF8B5CF6)
         ActivityType.CARD_ADDED -> Color(0xFFEC4899)
         ActivityType.WORK_LOG -> Color(0xFF3B82F6)
+    }
+}
+
+@Composable
+fun ActivityLegendCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                "Activity Types",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                LegendItem(color = Success, label = "Transaction")
+                LegendItem(color = Primary, label = "Recurring")
+                LegendItem(color = Secondary, label = "Habit")
+                LegendItem(color = Warning, label = "Goal")
+            }
+        }
+    }
+}
+
+@Composable
+fun LegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, CircleShape)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

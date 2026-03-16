@@ -26,6 +26,7 @@ sealed class Screen(val route: String) {
         fun createRoute(id: Long) = "goal_detail/$id"
     }
     object Savings : Screen("savings")
+    object AddSavings : Screen("add_savings")
     object Transfer : Screen("transfer")
     object Income : Screen("income")
     object Expense : Screen("expense")

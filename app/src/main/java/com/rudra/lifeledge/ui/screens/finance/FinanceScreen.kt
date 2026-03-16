@@ -440,20 +440,196 @@ fun TransactionItem(transaction: Transaction, onDelete: () -> Unit) {
 
 @Composable
 fun BudgetTab() {
+    val budgetCategories = listOf(
+        BudgetCategoryItem("Food & Dining", 5000f, 3200f, Color(0xFFEF4444)),
+        BudgetCategoryItem("Transport", 3000f, 1800f, Color(0xFF3B82F6)),
+        BudgetCategoryItem("Shopping", 4000f, 2500f, Color(0xFFEC4899)),
+        BudgetCategoryItem("Entertainment", 2000f, 800f, Color(0xFF8B5CF6)),
+        BudgetCategoryItem("Bills & Utilities", 3500f, 3500f, Color(0xFFF59E0B)),
+        BudgetCategoryItem("Health", 2000f, 500f, Color(0xFF22C55E)),
+        BudgetCategoryItem("Education", 3000f, 1500f, Color(0xFF06B6D4)),
+        BudgetCategoryItem("Personal Care", 1500f, 700f, Color(0xFFF97316))
+    )
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Primary),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            "Total Budget",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            "৳24,000",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "Spent",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            "৳14,500",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { 0.6f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = Success,
+                    trackColor = Color.White.copy(alpha = 0.3f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "60% of budget used",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            }
+        }
+
+        item {
             Text(
-                "Monthly Budgets",
+                "Category Budgets",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp)
             )
         }
+
+        items(budgetCategories) { category ->
+            BudgetCategoryCard(category = category)
+        }
+
         item {
-            EmptyStateCard(message = "Set budgets for your categories")
+            Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+}
+
+data class BudgetCategoryItem(
+    val name: String,
+    val budget: Float,
+    val spent: Float,
+    val color: Color
+)
+
+@Composable
+fun BudgetCategoryCard(category: BudgetCategoryItem) {
+    val progress = (category.spent / category.budget).coerceIn(0f, 1f)
+    val isOverBudget = category.spent > category.budget
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isOverBudget) Error.copy(alpha = 0.1f) 
+                           else MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(category.color.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.PieChart,
+                            contentDescription = null,
+                            tint = category.color,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        category.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        "৳${category.spent.toInt()}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isOverBudget) Error else category.color
+                    )
+                    Text(
+                        "of ৳${category.budget.toInt()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                color = if (isOverBudget) Error else category.color,
+                trackColor = category.color.copy(alpha = 0.2f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "${(progress * 100).toInt()}% used",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (category.budget - category.spent > 0) {
+                    Text(
+                        "৳${(category.budget - category.spent).toInt()} left",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Success
+                    )
+                } else {
+                    Text(
+                        "৳${(category.spent - category.budget).toInt()} over",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Error
+                    )
+                }
+            }
         }
     }
 }

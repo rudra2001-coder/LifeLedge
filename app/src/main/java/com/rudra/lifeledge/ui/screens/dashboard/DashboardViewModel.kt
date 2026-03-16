@@ -95,8 +95,16 @@ class DashboardViewModel(
                 launch {
                     financeRepository.getExpensesByCategory(monthStart, monthEnd).collect { categories ->
                         val categoryNames = mapOf(
-                            1L to "Food", 2L to "Transport", 3L to "Shopping",
-                            4L to "Bills", 5L to "Entertainment", 6L to "Health", 7L to "Others"
+                            1L to "Food & Dining",
+                            2L to "Transport",
+                            3L to "Shopping",
+                            4L to "Bills & Utilities",
+                            5L to "Entertainment",
+                            6L to "Health",
+                            7L to "Education",
+                            8L to "Personal Care",
+                            9L to "Gifts & Donations",
+                            10L to "Other"
                         )
                         val expenseCats = categories
                             .sortedByDescending { it.total }

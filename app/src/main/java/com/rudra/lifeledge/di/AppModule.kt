@@ -9,6 +9,7 @@ import com.rudra.lifeledge.ui.screens.goals.AddGoalViewModel
 import com.rudra.lifeledge.ui.screens.habits.HabitsViewModel
 import com.rudra.lifeledge.ui.screens.journal.JournalViewModel
 import com.rudra.lifeledge.ui.screens.savings.SavingsViewModel
+import com.rudra.lifeledge.ui.screens.savings.AddSavingsViewModel
 import com.rudra.lifeledge.ui.screens.income.IncomeViewModel
 import com.rudra.lifeledge.ui.screens.work.WorkViewModel
 import com.rudra.lifeledge.ui.screens.backup.BackupViewModel
@@ -71,6 +72,7 @@ val repositoryModule = module {
     viewModel { IncomeViewModel(get()) }
     viewModel { WorkViewModel(get()) }
     viewModel { SavingsViewModel(get(), get()) }
+    viewModel { AddSavingsViewModel(get()) }
     viewModel { BackupViewModel(get(), get()) }
     viewModel { ExpenseViewModel(get()) }
     viewModel { FinanceViewModel(get()) }

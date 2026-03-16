@@ -23,6 +23,7 @@ import com.rudra.lifeledge.ui.screens.more.MoreScreen
 import com.rudra.lifeledge.ui.screens.recurring.RecurringTransactionsScreen
 import com.rudra.lifeledge.ui.screens.cards.CardsScreen
 import com.rudra.lifeledge.ui.screens.calendar.CalendarScreen
+import com.rudra.lifeledge.ui.screens.savings.AddSavingsScreen
 
 @Composable
 fun LifeLedgerNavGraph(
@@ -44,6 +45,12 @@ fun LifeLedgerNavGraph(
         }
         composable(Screen.Savings.route) {
             SavingsScreen(
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AddSavings.route) {
+            AddSavingsScreen(
                 navController = navController,
                 onNavigateBack = { navController.popBackStack() }
             )

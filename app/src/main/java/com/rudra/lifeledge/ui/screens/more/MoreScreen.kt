@@ -40,7 +40,8 @@ val financialSection = MoreSection(
     items = listOf(
         MoreMenuItem("income", "Add Income", "Record your income", Icons.Default.TrendingUp, Success, Screen.Income.route),
         MoreMenuItem("expense", "Add Expense", "Track your spending", Icons.Default.TrendingDown, Error, Screen.Expense.route),
-        MoreMenuItem("savings", "Savings", "Manage savings goals", Icons.Default.Savings, Secondary, Screen.Savings.route),
+        MoreMenuItem("savings", "Add Savings", "Add to savings", Icons.Default.Savings, Secondary, Screen.AddSavings.route),
+        MoreMenuItem("manage_savings", "Manage Savings", "Manage savings goals", Icons.Default.Savings, Color(0xFF8B5CF6), Screen.Savings.route),
         MoreMenuItem("transfer", "Transfer", "Move money", Icons.Default.SwapHoriz, Color(0xFF6366F1), Screen.Transfer.route),
         MoreMenuItem("cards", "Cards & Wallets", "Manage cards", Icons.Default.CreditCard, Color(0xFFEC4899), Screen.Cards.route),
         MoreMenuItem("accounts", "Accounts", "Manage bank accounts", Icons.Default.AccountBalance, Color(0xFFEC4899), Screen.Finance.route),
@@ -165,7 +166,7 @@ fun QuickActionsSection(navController: NavController) {
                 QuickActionButton(
                     icon = Icons.Default.Savings,
                     label = "Savings",
-                    onClick = { navController.navigate(Screen.Savings.route) }
+                    onClick = { navController.navigate(Screen.AddSavings.route) }
                 )
                 QuickActionButton(
                     icon = Icons.Default.SwapHoriz,

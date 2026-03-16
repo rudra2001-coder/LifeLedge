@@ -67,7 +67,7 @@ fun DashboardScreen(
                 onExpandedChange = { isFabExpanded = it },
                 onIncomeClick = { navController.navigate(Screen.Income.route) },
                 onExpenseClick = { navController.navigate(Screen.Expense.route) },
-                onSavingsClick = { navController.navigate(Screen.Savings.route) }
+                onSavingsClick = { navController.navigate(Screen.AddSavings.route) }
             )
         }
     ) { paddingValues ->
@@ -304,6 +304,19 @@ fun DailyBalanceCard(
 fun ExpenseCategoriesCard(
     categories: List<ExpenseCategoryUi>
 ) {
+    val categoryColors = mapOf(
+        "Food & Dining" to Color(0xFFEF4444),
+        "Transport" to Color(0xFF3B82F6),
+        "Shopping" to Color(0xFFEC4899),
+        "Entertainment" to Color(0xFF8B5CF6),
+        "Bills & Utilities" to Color(0xFFF59E0B),
+        "Health" to Color(0xFF22C55E),
+        "Education" to Color(0xFF06B6D4),
+        "Personal Care" to Color(0xFFF97316),
+        "Gifts & Donations" to Color(0xFFE11D48),
+        "Other" to Color(0xFF6B7280)
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -321,14 +334,28 @@ fun ExpenseCategoriesCard(
             )
             Spacer(modifier = Modifier.height(12.dp))
             if (categories.isEmpty()) {
-                Text(
-                    "No expense data",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.PieChart,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "No expense data yet",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             } else {
                 val maxAmount = categories.maxOfOrNull { it.total } ?: 1.0
                 categories.forEach { category ->
+                    val categoryColor = categoryColors[category.categoryName] ?: Primary
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -336,11 +363,19 @@ fun ExpenseCategoriesCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            category.categoryName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(categoryColor, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                category.categoryName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                         Text(
                             formatCurrency(category.total),
                             style = MaterialTheme.typography.bodyMedium,
@@ -353,12 +388,12 @@ fun ExpenseCategoriesCard(
                         progress = { (category.total / maxAmount).toFloat() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp)),
-                        color = Primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = categoryColor,
+                        trackColor = categoryColor.copy(alpha = 0.2f)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }
