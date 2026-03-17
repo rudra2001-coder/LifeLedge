@@ -47,4 +47,33 @@ class HabitRepository(
 
     suspend fun getAllCompletionsForHabit(habitId: Long): List<HabitCompletion> =
         habitCompletionDao.getAllCompletionsForHabit(habitId)
+
+    fun getLongestStreak(): Flow<Int> = kotlinx.coroutines.flow.flow {
+        val allHabits = habitDao.getActiveHabits()
+        allHabits.collect { habits ->
+            var maxStreak = 0
+            for (habit in habits) {
+                val completions = habitCompletionDao.getAllCompletionsForHabit(habit.id)
+                    .map { it.date }
+                    .toSet()
+                if (completions.isNotEmpty()) {
+                    val sortedDates = completions.mapNotNull { 
+                        java.time.LocalDate.parse(it, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE) 
+                    }.sorted()
+                    
+                    var currentStreak = 1
+                    for (i in 1 until sortedDates.size) {
+                        if (sortedDates[i].minusDays(1) == sortedDates[i - 1]) {
+                            currentStreak++
+                        } else {
+                            maxStreak = maxOf(maxStreak, currentStreak)
+                            currentStreak = 1
+                        }
+                    }
+                    maxStreak = maxOf(maxStreak, currentStreak)
+                }
+            }
+            emit(maxStreak)
+        }
+    }
 }

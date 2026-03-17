@@ -1,9 +1,17 @@
 package com.rudra.lifeledge.data.repository
 
+import com.rudra.lifeledge.core.finance.FinanceEngine
+import com.rudra.lifeledge.core.finance.model.*
 import com.rudra.lifeledge.data.local.dao.AccountDao
 import com.rudra.lifeledge.data.local.dao.TransactionDao
 import com.rudra.lifeledge.data.local.dao.CategoryDao
 import com.rudra.lifeledge.data.local.dao.CategoryTotal
+import com.rudra.lifeledge.data.local.dao.MonthlySummaryDao
+import com.rudra.lifeledge.data.local.dao.DailySummaryDao
+import com.rudra.lifeledge.data.local.dao.CategorySummaryDao
+import com.rudra.lifeledge.data.local.dao.AccountSummaryDao
+import com.rudra.lifeledge.data.local.dao.BehaviorPatternDao
+import com.rudra.lifeledge.data.local.dao.SpendingStreakDao
 import com.rudra.lifeledge.data.local.dao.RecurringTransactionDao
 import com.rudra.lifeledge.data.local.dao.LoanDao
 import com.rudra.lifeledge.data.local.dao.EMIPaymentDao
@@ -19,6 +27,7 @@ import com.rudra.lifeledge.data.local.entity.TransactionType
 import com.rudra.lifeledge.data.local.entity.AccountType
 import com.rudra.lifeledge.data.local.entity.Frequency
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 class FinanceRepository(
     private val accountDao: AccountDao,
@@ -27,8 +36,27 @@ class FinanceRepository(
     private val recurringTransactionDao: RecurringTransactionDao,
     private val loanDao: LoanDao,
     private val emiPaymentDao: EMIPaymentDao,
-    private val creditCardDao: CreditCardDao
+    private val creditCardDao: CreditCardDao,
+    private val monthlySummaryDao: MonthlySummaryDao? = null,
+    private val dailySummaryDao: DailySummaryDao? = null,
+    private val categorySummaryDao: CategorySummaryDao? = null,
+    private val accountSummaryDao: AccountSummaryDao? = null,
+    private val behaviorPatternDao: BehaviorPatternDao? = null,
+    private val spendingStreakDao: SpendingStreakDao? = null
 ) {
+    val financeEngine: FinanceEngine by lazy {
+        FinanceEngine(
+            transactionDao,
+            accountDao,
+            categoryDao,
+            monthlySummaryDao,
+            dailySummaryDao,
+            categorySummaryDao,
+            accountSummaryDao,
+            behaviorPatternDao,
+            spendingStreakDao
+        )
+    }
     fun getAllAccounts(): Flow<List<Account>> = accountDao.getAllAccounts()
 
     fun getActiveAccounts(): Flow<List<Account>> = accountDao.getActiveAccounts()
@@ -280,4 +308,75 @@ class FinanceRepository(
     // Expense by category
     fun getExpensesByCategory(startDate: String, endDate: String): Flow<List<CategoryTotal>> =
         transactionDao.getExpensesByCategory(startDate, endDate)
+
+    // FinanceEngine Delegations
+    fun getMonthlySummary(month: LocalDate = LocalDate.now()): Flow<MonthlySummary> =
+        financeEngine.getMonthlySummary(month)
+
+    fun getDailySummary(date: LocalDate = LocalDate.now()): Flow<DailySummary> =
+        financeEngine.getDailySummary(date)
+
+    fun getWeeklySummary(weekStart: LocalDate = LocalDate.now()): Flow<WeeklySummary> =
+        financeEngine.getWeeklySummary(weekStart)
+
+    fun getSpendingInsights(month: LocalDate = LocalDate.now()): Flow<List<SpendingInsight>> =
+        financeEngine.getSpendingInsights(month)
+
+    fun getAlerts(month: LocalDate = LocalDate.now()): Flow<List<FinanceAlert>> =
+        financeEngine.getAlerts(month)
+
+    fun getCategorySpending(month: LocalDate = LocalDate.now()): Flow<List<CategorySpending>> =
+        financeEngine.getCategorySpending(month)
+
+    fun getAccountBalances(): Flow<List<AccountBalance>> =
+        financeEngine.getAccountBalances()
+
+    fun getBehaviorPatterns(month: LocalDate = LocalDate.now()): Flow<List<BehaviorPattern>> =
+        financeEngine.getBehaviorPatterns(month)
+
+    fun getBudgetStatus(monthlyBudget: Double, month: LocalDate = LocalDate.now()): Flow<BudgetStatus> =
+        financeEngine.getBudgetStatus(monthlyBudget, month)
+
+    fun getFilteredTransactions(
+        startDate: String? = null,
+        endDate: String? = null,
+        type: TransactionType? = null,
+        categoryId: Long? = null,
+        accountId: Long? = null,
+        searchQuery: String? = null
+    ): Flow<List<Transaction>> = financeEngine.getFilteredTransactions(
+        startDate, endDate, type, categoryId, accountId, searchQuery
+    )
+
+    suspend fun deleteTransactionWithBalanceUpdate(transaction: Transaction) =
+        financeEngine.deleteTransactionWithBalanceUpdate(transaction)
+
+    suspend fun addTransactionWithBalanceUpdate(transaction: Transaction): Long =
+        financeEngine.addTransactionWithBalanceUpdate(transaction)
+
+    // Advanced Intelligence Features
+    fun getSpendingPrediction(daysToPredict: Int = 7): Flow<SpendingPrediction> =
+        financeEngine.getSpendingPrediction(daysToPredict)
+
+    fun getRunwayCalculation(): Flow<RunwayCalculation> =
+        financeEngine.getRunwayCalculation()
+
+    fun getSmartSuggestions(): Flow<List<SmartSuggestion>> =
+        financeEngine.getSmartSuggestions()
+
+    fun getPersonalBehaviorModel(): Flow<PersonalBehaviorModel> =
+        financeEngine.getPersonalBehaviorModel()
+
+    fun getFinancialHealthScore(): Flow<FinancialHealthScore> =
+        financeEngine.getFinancialHealthScore()
+
+    fun getStreakInfo(): Flow<StreakInfo> =
+        financeEngine.getStreakInfo()
+
+    // Integrity Validation
+    suspend fun validateIntegrity(): IntegrityCheck =
+        financeEngine.validateIntegrity()
+
+    suspend fun fixIntegrityIssues() =
+        financeEngine.fixIntegrityIssues()
 }

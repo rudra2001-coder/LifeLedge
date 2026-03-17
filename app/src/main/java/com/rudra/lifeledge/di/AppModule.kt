@@ -51,11 +51,17 @@ val databaseModule = module {
     single { get<LifeLedgerDatabase>().savingTransactionDao() }
     single { get<LifeLedgerDatabase>().cardDao() }
     single { get<LifeLedgerDatabase>().activityLogDao() }
+    single { get<LifeLedgerDatabase>().monthlySummaryDao() }
+    single { get<LifeLedgerDatabase>().dailySummaryDao() }
+    single { get<LifeLedgerDatabase>().categorySummaryDao() }
+    single { get<LifeLedgerDatabase>().accountSummaryDao() }
+    single { get<LifeLedgerDatabase>().behaviorPatternDao() }
+    single { get<LifeLedgerDatabase>().spendingStreakDao() }
 }
 
 val repositoryModule = module {
     single { WorkRepository(get(), get(), get(), get()) }
-    single { FinanceRepository(get(), get(), get(), get(), get(), get(), get()) }
+    single { FinanceRepository(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single { HabitRepository(get(), get()) }
     single { JournalRepository(get(), get()) }
     single { GoalRepository(get(), get()) }

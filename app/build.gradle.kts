@@ -152,7 +152,14 @@ dependencies {
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     // Alternative: Pure Compose charts
     implementation("co.yml:ycharts:2.1.0")
-    
+
+    // ------------------------------------------------------------
+    // Icone
+    // ------------------------------------------------------------
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("br.com.devsrsouza.compose.icons:feather:1.1.0")
+    implementation("br.com.devsrsouza.compose.icons:font-awesome:1.1.0")
+    implementation("br.com.devsrsouza.compose.icons:tabler-icons:1.1.0")
     // ------------------------------------------------------------
     // Accompanist (Utilities)
     // ------------------------------------------------------------

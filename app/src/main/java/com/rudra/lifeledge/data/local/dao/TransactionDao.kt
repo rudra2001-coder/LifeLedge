@@ -86,6 +86,33 @@ interface TransactionDao {
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'EXPENSE' AND date = :date")
     fun getDailyExpense(date: String): Flow<Double>
 
+    // Weekly totals
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'INCOME' AND date BETWEEN :startDate AND :endDate")
+    fun getWeeklyIncome(startDate: String, endDate: String): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'EXPENSE' AND date BETWEEN :startDate AND :endDate")
+    fun getWeeklyExpense(startDate: String, endDate: String): Flow<Double>
+
+    // Account-based balance calculation
+    @Query("""
+        SELECT COALESCE(SUM(CASE 
+            WHEN type = 'INCOME' THEN amount 
+            WHEN type = 'EXPENSE' THEN -amount 
+            WHEN type = 'SAVE' THEN -amount 
+            WHEN type = 'TRANSFER_FROM_SAVING' THEN amount 
+            ELSE 0 END), 0) 
+        FROM transactions WHERE accountId = :accountId
+    """)
+    fun getAccountBalance(accountId: Long): Flow<Double>
+
+    // Search transactions
+    @Query("""
+        SELECT * FROM transactions 
+        WHERE (notes LIKE '%' || :query || '%' OR payee LIKE '%' || :query || '%' OR tags LIKE '%' || :query || '%')
+        ORDER BY date DESC
+    """)
+    fun searchTransactions(query: String): Flow<List<Transaction>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: Transaction): Long
 
