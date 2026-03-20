@@ -55,6 +55,27 @@ sealed class NavigationItem(
         description = "Track your work sessions"
     )
 
+    object Finance : NavigationItem(
+        route = "finance",
+        title = "Finance",
+        icon = Icons.Default.AccountBalance,
+        description = "Manage your finances"
+    )
+
+    object Work : NavigationItem(
+        route = "work",
+        title = "Work Center",
+        icon = Icons.Default.Work,
+        description = "Track hours & productivity"
+    )
+
+    object Goals : NavigationItem(
+        route = "goals",
+        title = "Goals",
+        icon = Icons.Default.Flag,
+        description = "Set & achieve milestones"
+    )
+
     object Expense : NavigationItem(
         route = "expense",
         title = "Expense Log",
@@ -172,6 +193,13 @@ sealed class NavigationItem(
         title = "Savings",
         icon = Icons.Default.Savings,
         description = "Manage your savings"
+    )
+    
+    object AddSavings : NavigationItem(
+        route = "add_savings",
+        title = "Add Savings",
+        icon = Icons.Default.Add,
+        description = "Add a new savings goal"
     )
     
     object Loans : NavigationItem(

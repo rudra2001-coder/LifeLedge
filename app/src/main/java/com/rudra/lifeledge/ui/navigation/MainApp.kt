@@ -30,23 +30,29 @@ import com.rudra.lifeledge.ui.screens.loan.EmiScreen
 import com.rudra.lifeledge.ui.screens.placeholder.*
 import com.rudra.lifeledge.ui.screens.analytics.AnalyticsScreen
 import com.rudra.lifeledge.ui.screens.achievements.AchievementsScreen
+import com.rudra.lifeledge.ui.screens.finance.FinanceScreen
 import com.rudra.lifeledge.ui.screens.focus.FocusScreen
 import com.rudra.lifeledge.ui.screens.health.HealthMetricsScreen
 import com.rudra.lifeledge.ui.screens.profile.ProfileScreen
 import com.rudra.lifeledge.ui.screens.profile.ProfileSetupScreen
+import com.rudra.lifeledge.ui.screens.work.WorkScreen
 import com.rudra.lifeledge.ui.screens.work.WorkTimerScreen
 import com.rudra.lifeledge.ui.screens.backup.BackupScreen
 import com.rudra.lifeledge.ui.screens.calendar.CalendarScreen
 import com.rudra.lifeledge.ui.screens.cards.CardsScreen
 import com.rudra.lifeledge.ui.screens.dashboard.DashboardScreen
 import com.rudra.lifeledge.ui.screens.expense.ExpenseScreen
+import com.rudra.lifeledge.ui.screens.goals.GoalsScreen
 import com.rudra.lifeledge.ui.screens.habits.HabitsScreen
 import com.rudra.lifeledge.ui.screens.income.IncomeScreen
 import com.rudra.lifeledge.ui.screens.journal.JournalScreen
 import com.rudra.lifeledge.ui.screens.onboarding.OnboardingScreen
+import com.rudra.lifeledge.ui.screens.recurring.RecurringTransactionsScreen
 import com.rudra.lifeledge.ui.screens.reports.ReportsScreen
 import com.rudra.lifeledge.ui.screens.savings.SavingsScreen
+import com.rudra.lifeledge.ui.screens.savings.AddSavingsScreen
 import com.rudra.lifeledge.ui.screens.settings.SettingsScreen
+import com.rudra.lifeledge.ui.screens.settings.ExportScreen
 import com.rudra.lifeledge.ui.screens.transfer.TransferScreen
 import com.rudra.lifeledge.ui.screens.more.MoreScreen
 import kotlinx.coroutines.launch
@@ -84,8 +90,10 @@ fun MainApp() {
         NavigationItem.Analytics,
         NavigationItem.MonthlyReport,
         NavigationItem.Calculation,
-        NavigationItem.FinancialStatement,
+        NavigationItem.Finance,
         NavigationItem.Savings,
+        NavigationItem.Goals,
+        NavigationItem.Work,
         NavigationItem.Loans,
         NavigationItem.EMI,
         NavigationItem.CreditCard,
@@ -398,6 +406,26 @@ fun MainApp() {
                 }
                 
                 composable(
+                    route = Screen.Finance.route,
+                    enterTransition = { defaultEnterTransition() },
+                    exitTransition = { defaultExitTransition() },
+                    popEnterTransition = { defaultPopEnterTransition() },
+                    popExitTransition = { defaultPopExitTransition() }
+                ) {
+                    FinanceScreen(navController = navController)
+                }
+                
+                composable(
+                    route = Screen.Work.route,
+                    enterTransition = { defaultEnterTransition() },
+                    exitTransition = { defaultExitTransition() },
+                    popEnterTransition = { defaultPopEnterTransition() },
+                    popExitTransition = { defaultPopExitTransition() }
+                ) {
+                    WorkScreen(navController = navController)
+                }
+                
+                composable(
                     route = NavigationItem.Savings.route,
                     enterTransition = { defaultEnterTransition() },
                     exitTransition = { defaultExitTransition() },
@@ -405,6 +433,56 @@ fun MainApp() {
                     popExitTransition = { defaultPopExitTransition() }
                 ) {
                     SavingsScreen(navController = navController, onNavigateBack = { navController.popBackStack() })
+                }
+                
+                composable(
+                    route = NavigationItem.AddSavings.route,
+                    enterTransition = { defaultEnterTransition() },
+                    exitTransition = { defaultExitTransition() },
+                    popEnterTransition = { defaultPopEnterTransition() },
+                    popExitTransition = { defaultPopExitTransition() }
+                ) {
+                    AddSavingsScreen(navController = navController, onNavigateBack = { navController.popBackStack() })
+                }
+                
+                composable(
+                    route = Screen.Goals.route,
+                    enterTransition = { defaultEnterTransition() },
+                    exitTransition = { defaultExitTransition() },
+                    popEnterTransition = { defaultPopEnterTransition() },
+                    popExitTransition = { defaultPopExitTransition() }
+                ) {
+                    GoalsScreen(navController = navController)
+                }
+                
+                composable(
+                    route = NavigationItem.Goals.route,
+                    enterTransition = { defaultEnterTransition() },
+                    exitTransition = { defaultExitTransition() },
+                    popEnterTransition = { defaultPopEnterTransition() },
+                    popExitTransition = { defaultPopExitTransition() }
+                ) {
+                    GoalsScreen(navController = navController)
+                }
+                
+                composable(
+                    route = Screen.RecurringTransactions.route,
+                    enterTransition = { defaultEnterTransition() },
+                    exitTransition = { defaultExitTransition() },
+                    popEnterTransition = { defaultPopEnterTransition() },
+                    popExitTransition = { defaultPopExitTransition() }
+                ) {
+                    RecurringTransactionsScreen(navController = navController, onNavigateBack = { navController.popBackStack() })
+                }
+                
+                composable(
+                    route = Screen.Export.route,
+                    enterTransition = { defaultEnterTransition() },
+                    exitTransition = { defaultExitTransition() },
+                    popEnterTransition = { defaultPopEnterTransition() },
+                    popExitTransition = { defaultPopExitTransition() }
+                ) {
+                    ExportScreen(navController = navController, onNavigateBack = { navController.popBackStack() })
                 }
                 
                 composable(

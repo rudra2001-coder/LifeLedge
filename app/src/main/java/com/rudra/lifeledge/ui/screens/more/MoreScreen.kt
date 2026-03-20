@@ -1,97 +1,302 @@
 package com.rudra.lifeledge.ui.screens.more
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.rudra.lifeledge.ui.navigation.Screen
 import com.rudra.lifeledge.ui.theme.*
+import kotlinx.coroutines.delay
 
+// Enhanced data class with more properties
 data class MoreMenuItem(
     val id: String,
     val title: String,
-    val subtitle: String,
+    val subtitle: String = "",
     val icon: ImageVector,
+    val iconOutline: ImageVector? = null,
     val color: Color,
-    val route: String? = null
+    val gradient: List<Color>? = null,
+    val badge: String? = null,
+    val route: String? = null,
+    val onClick: (() -> Unit)? = null
 )
 
 data class MoreSection(
     val title: String,
+    val icon: ImageVector,
+    val gradient: List<Color>,
     val items: List<MoreMenuItem>
 )
 
+// Updated sections with gradients and badges
 val financialSection = MoreSection(
-    title = "Financial",
+    title = "Finance Hub",
+    icon = Icons.Outlined.AccountBalance,
+    gradient = listOf(Color(0xFF10B981), Color(0xFF059669)),
     items = listOf(
-        MoreMenuItem("income", "Add Income", "Record your income", Icons.Default.TrendingUp, Success, Screen.Income.route),
-        MoreMenuItem("expense", "Add Expense", "Track your spending", Icons.Default.TrendingDown, Error, Screen.Expense.route),
-        MoreMenuItem("savings", "Add Savings", "Add to savings", Icons.Default.Savings, Secondary, Screen.AddSavings.route),
-        MoreMenuItem("manage_savings", "Manage Savings", "Manage savings goals", Icons.Default.Savings, Color(0xFF8B5CF6), Screen.Savings.route),
-        MoreMenuItem("transfer", "Transfer", "Move money", Icons.Default.SwapHoriz, Color(0xFF6366F1), Screen.Transfer.route),
-        MoreMenuItem("cards", "Cards & Wallets", "Manage cards", Icons.Default.CreditCard, Color(0xFFEC4899), Screen.Cards.route),
-        MoreMenuItem("accounts", "Accounts", "Manage bank accounts", Icons.Default.AccountBalance, Color(0xFFEC4899), Screen.Finance.route),
-        MoreMenuItem("budgets", "Budgets", "Set spending limits", Icons.Default.PieChart, Color(0xFFF97316), Screen.Finance.route),
-        MoreMenuItem("recurring", "Recurring Transactions", "Auto transactions", Icons.Default.Repeat, Color(0xFF8B5CF6), Screen.RecurringTransactions.route),
-        MoreMenuItem("loans", "Loans & EMI", "Track debts", Icons.Default.CreditCard, Color(0xFFEF4444), Screen.Finance.route)
+        MoreMenuItem(
+            id = "income",
+            title = "Add Income",
+            subtitle = "Record your earnings",
+            icon = Icons.Filled.TrendingUp,
+            iconOutline = Icons.Outlined.TrendingUp,
+            color = Color(0xFF10B981),
+            badge = "NEW",
+            route = Screen.Income.route
+        ),
+        MoreMenuItem(
+            id = "expense",
+            title = "Add Expense",
+            subtitle = "Track your spending",
+            icon = Icons.Filled.TrendingDown,
+            iconOutline = Icons.Outlined.TrendingDown,
+            color = Color(0xFFEF4444),
+            badge = "5 today",
+            route = Screen.Expense.route
+        ),
+        MoreMenuItem(
+            id = "savings",
+            title = "Add Savings",
+            subtitle = "Build your wealth",
+            icon = Icons.Filled.Savings,
+            iconOutline = Icons.Outlined.Savings,
+            color = Color(0xFFF59E0B),
+            route = Screen.AddSavings.route
+        ),
+        MoreMenuItem(
+            id = "manage_savings",
+            title = "Manage Savings",
+            subtitle = "View goals progress",
+            icon = Icons.Filled.Savings,
+            iconOutline = Icons.Outlined.Savings,
+            color = Color(0xFF8B5CF6),
+            badge = "80%",
+            route = Screen.Savings.route
+        ),
+        MoreMenuItem(
+            id = "transfer",
+            title = "Transfer",
+            subtitle = "Move money between accounts",
+            icon = Icons.Filled.SwapHoriz,
+            iconOutline = Icons.Outlined.SwapHoriz,
+            color = Color(0xFF6366F1),
+            route = Screen.Transfer.route
+        ),
+        MoreMenuItem(
+            id = "cards",
+            title = "Cards & Wallets",
+            subtitle = "Digital & physical cards",
+            icon = Icons.Filled.CreditCard,
+            iconOutline = Icons.Outlined.CreditCard,
+            color = Color(0xFFEC4899),
+            route = Screen.Cards.route
+        ),
+        MoreMenuItem(
+            id = "accounts",
+            title = "Accounts",
+            subtitle = "Bank & investment accounts",
+            icon = Icons.Filled.AccountBalance,
+            iconOutline = Icons.Outlined.AccountBalance,
+            color = Color(0xFF3B82F6),
+            route = Screen.Finance.route
+        ),
+        MoreMenuItem(
+            id = "budgets",
+            title = "Budgets",
+            subtitle = "Set spending limits",
+            icon = Icons.Filled.PieChart,
+            iconOutline = Icons.Outlined.PieChart,
+            color = Color(0xFFF97316),
+            route = Screen.Finance.route
+        ),
+        MoreMenuItem(
+            id = "recurring",
+            title = "Recurring",
+            subtitle = "Auto transactions",
+            icon = Icons.Filled.Repeat,
+            iconOutline = Icons.Outlined.Repeat,
+            color = Color(0xFF8B5CF6),
+            route = Screen.RecurringTransactions.route
+        ),
+        MoreMenuItem(
+            id = "loans",
+            title = "Loans & EMI",
+            subtitle = "Track debts & payments",
+            icon = Icons.Filled.CreditCard,
+            iconOutline = Icons.Outlined.CreditCard,
+            color = Color(0xFFEF4444),
+            route = Screen.Finance.route
+        )
     )
 )
 
 val generalSection = MoreSection(
-    title = "General",
+    title = "Life Tools",
+    icon = Icons.Outlined.GridView,
+    gradient = listOf(Color(0xFF3B82F6), Color(0xFF2563EB)),
     items = listOf(
-        MoreMenuItem("work", "Work Center", "Track hours & overtime", Icons.Default.Work, Color(0xFF3B82F6), Screen.Work.route),
-        MoreMenuItem("habits", "Habits", "Build daily routines", Icons.Default.CheckCircle, Color(0xFF22C55E), Screen.Habits.route),
-        MoreMenuItem("journal", "Journal", "Reflect & write", Icons.Default.Book, Color(0xFF8B5CF6), Screen.Journal.route),
-        MoreMenuItem("goals", "Goals", "Set & achieve goals", Icons.Default.Flag, Color(0xFFF59E0B), Screen.Goals.route),
-        MoreMenuItem("reports", "Reports", "Analytics & insights", Icons.Default.Analytics, Color(0xFF06B6D4), Screen.Reports.route),
-        MoreMenuItem("calendar", "Calendar", "View all events", Icons.Default.CalendarMonth, Color(0xFF14B8A6), Screen.Calendar.route)
+        MoreMenuItem(
+            id = "work",
+            title = "Work Center",
+            subtitle = "Track hours & productivity",
+            icon = Icons.Filled.Work,
+            iconOutline = Icons.Outlined.Work,
+            color = Color(0xFF3B82F6),
+            route = Screen.Work.route
+        ),
+        MoreMenuItem(
+            id = "habits",
+            title = "Habits",
+            subtitle = "Build daily routines",
+            icon = Icons.Filled.CheckCircle,
+            iconOutline = Icons.Outlined.CheckCircle,
+            color = Color(0xFF22C55E),
+            badge = "3 active",
+            route = Screen.Habits.route
+        ),
+        MoreMenuItem(
+            id = "journal",
+            title = "Journal",
+            subtitle = "Reflect & write thoughts",
+            icon = Icons.Filled.Book,
+            iconOutline = Icons.Outlined.Book,
+            color = Color(0xFF8B5CF6),
+            route = Screen.Journal.route
+        ),
+        MoreMenuItem(
+            id = "goals",
+            title = "Goals",
+            subtitle = "Set & achieve milestones",
+            icon = Icons.Filled.Flag,
+            iconOutline = Icons.Outlined.Flag,
+            color = Color(0xFFF59E0B),
+            route = Screen.Goals.route
+        ),
+        MoreMenuItem(
+            id = "reports",
+            title = "Reports",
+            subtitle = "Analytics & insights",
+            icon = Icons.Filled.Analytics,
+            iconOutline = Icons.Outlined.Analytics,
+            color = Color(0xFF06B6D4),
+            route = Screen.Reports.route
+        ),
+        MoreMenuItem(
+            id = "calendar",
+            title = "Calendar",
+            subtitle = "View all events",
+            icon = Icons.Filled.CalendarMonth,
+            iconOutline = Icons.Outlined.CalendarMonth,
+            color = Color(0xFF14B8A6),
+            route = Screen.Calendar.route
+        )
     )
 )
 
 val settingsSection = MoreSection(
-    title = "Settings",
+    title = "System",
+    icon = Icons.Outlined.Settings,
+    gradient = listOf(Color(0xFF6B7280), Color(0xFF4B5563)),
     items = listOf(
-        MoreMenuItem("settings", "Settings", "App preferences", Icons.Default.Settings, Color(0xFF64748B), Screen.Settings.route),
-        MoreMenuItem("backup", "Backup & Restore", "Manage your data", Icons.Default.Backup, Color(0xFF64748B), Screen.Backup.route),
-        MoreMenuItem("export", "Export Data", "JSON, CSV, PDF", Icons.Default.Download, Color(0xFF64748B), Screen.Export.route),
-        MoreMenuItem("about", "About", "Version 1.0.0", Icons.Default.Info, Color(0xFF64748B), Screen.Settings.route)
+        MoreMenuItem(
+            id = "settings",
+            title = "Settings",
+            subtitle = "App preferences & theme",
+            icon = Icons.Filled.Settings,
+            iconOutline = Icons.Outlined.Settings,
+            color = Color(0xFF64748B),
+            route = Screen.Settings.route
+        ),
+        MoreMenuItem(
+            id = "backup",
+            title = "Backup & Restore",
+            subtitle = "Secure your data",
+            icon = Icons.Filled.Backup,
+            iconOutline = Icons.Outlined.Backup,
+            color = Color(0xFF64748B),
+            route = Screen.Backup.route
+        ),
+        MoreMenuItem(
+            id = "export",
+            title = "Export Data",
+            subtitle = "JSON, CSV, PDF formats",
+            icon = Icons.Filled.Download,
+            iconOutline = Icons.Outlined.Download,
+            color = Color(0xFF64748B),
+            route = Screen.Export.route
+        ),
+        MoreMenuItem(
+            id = "about",
+            title = "About",
+            subtitle = "v2.0.0 | Privacy policy",
+            icon = Icons.Filled.Info,
+            iconOutline = Icons.Outlined.Info,
+            color = Color(0xFF64748B),
+            route = Screen.Settings.route
+        )
     )
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(navController: NavController) {
+    var selectedItemId by remember { mutableStateOf<String?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("More", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "Explore",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                    containerColor = Color.Transparent
+                ),
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
+                .padding(paddingValues)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                ),
+            contentPadding = PaddingValues(bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
@@ -99,37 +304,65 @@ fun MoreScreen(navController: NavController) {
             }
 
             item {
-                SectionCard(
-                    title = financialSection.title,
-                    icon = Icons.Default.AccountBalance,
-                    iconColor = Success,
-                    items = financialSection.items,
-                    navController = navController
-                )
+                WelcomeCard()
             }
 
-            item {
-                SectionCard(
-                    title = generalSection.title,
-                    icon = Icons.Default.GridView,
-                    iconColor = Primary,
-                    items = generalSection.items,
-                    navController = navController
+            items(listOf(financialSection, generalSection, settingsSection)) { section ->
+                AnimatedSection(
+                    section = section,
+                    navController = navController,
+                    selectedItemId = selectedItemId,
+                    onItemClick = { selectedItemId = it }
                 )
             }
+        }
+    }
+}
 
-            item {
-                SectionCard(
-                    title = settingsSection.title,
-                    icon = Icons.Default.Settings,
-                    iconColor = Color(0xFF64748B),
-                    items = settingsSection.items,
-                    navController = navController
+@Composable
+fun WelcomeCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Welcome back! 👋",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "Track your finances and stay organized",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }
@@ -137,194 +370,316 @@ fun MoreScreen(navController: NavController) {
 
 @Composable
 fun QuickActionsSection(navController: NavController) {
+    var hoveredIndex by remember { mutableStateOf(-1) }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Primary),
-        shape = RoundedCornerShape(20.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                "Quick Actions",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        Column(modifier = Modifier.padding(24.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Quick Actions",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Icon(
+                    Icons.Default.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f)
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                QuickActionButton(
-                    icon = Icons.Default.TrendingUp,
-                    label = "Income",
-                    onClick = { navController.navigate(Screen.Income.route) }
-                )
-                QuickActionButton(
-                    icon = Icons.Default.TrendingDown,
-                    label = "Expense",
-                    onClick = { navController.navigate(Screen.Expense.route) }
-                )
-                QuickActionButton(
-                    icon = Icons.Default.Savings,
-                    label = "Savings",
-                    onClick = { navController.navigate(Screen.AddSavings.route) }
-                )
-                QuickActionButton(
-                    icon = Icons.Default.SwapHoriz,
-                    label = "Transfer",
-                    onClick = { navController.navigate(Screen.Transfer.route) }
-                )
+                listOf(
+                    Triple(Icons.Default.TrendingUp, "Income", Screen.Income.route),
+                    Triple(Icons.Default.TrendingDown, "Expense", Screen.Expense.route),
+                    Triple(Icons.Default.Savings, "Savings", Screen.AddSavings.route),
+                    Triple(Icons.Default.SwapHoriz, "Transfer", Screen.Transfer.route)
+                ).forEachIndexed { index, (icon, label, route) ->
+                    AnimatedQuickActionButton(
+                        icon = icon,
+                        label = label,
+                        isHovered = hoveredIndex == index,
+                        onClick = { navController.navigate(route) },
+                        onHover = { hoveredIndex = if (it) index else -1 }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun QuickActionButton(
+fun AnimatedQuickActionButton(
     icon: ImageVector,
     label: String,
-    onClick: () -> Unit
+    isHovered: Boolean,
+    onClick: () -> Unit,
+    onHover: (Boolean) -> Unit
 ) {
+    val scale by animateFloatAsState(
+        targetValue = if (isHovered) 1.05f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() }
-            .background(Color.White.copy(alpha = 0.2f))
+            .background(Color.White.copy(alpha = 0.15f))
             .padding(12.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(56.dp)
                 .background(Color.White, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Primary,
-                modifier = Modifier.size(24.dp)
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             label,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White,
-            fontWeight = FontWeight.Medium
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.White
         )
     }
 }
 
 @Composable
-fun SectionCard(
-    title: String,
-    icon: ImageVector,
-    iconColor: Color,
-    items: List<MoreMenuItem>,
-    navController: NavController
+fun AnimatedSection(
+    section: MoreSection,
+    navController: NavController,
+    selectedItemId: String?,
+    onItemClick: (String?) -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(100)
+        isVisible = true
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .animateContentSize(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Section Header
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(iconColor.copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconColor,
-                        modifier = Modifier.size(18.dp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                Brush.horizontalGradient(section.gradient),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = section.icon,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        section.title,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            items.chunked(2).forEach { rowItems ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    rowItems.forEach { item ->
-                        SectionItem(
-                            item = item,
-                            onClick = { 
-                                item.route?.let { navController.navigate(it) }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    if (rowItems.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
+            // Section Items with Animation
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ) + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    section.items.chunked(2).forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            rowItems.forEach { item ->
+                                AnimatedSectionItem(
+                                    item = item,
+                                    isSelected = selectedItemId == item.id,
+                                    onClick = {
+                                        onItemClick(item.id)
+                                        item.route?.let { navController.navigate(it) }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (rowItems.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
 }
 
 @Composable
-fun SectionItem(
+fun AnimatedSectionItem(
     item: MoreMenuItem,
+    isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+    )
+
     Card(
         modifier = modifier
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(12.dp)
+            .scale(scale)
+            .clickable(onClick = onClick)
+            .animateContentSize(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected)
+                item.color.copy(alpha = 0.1f)
+            else
+                MaterialTheme.colorScheme.surfaceVariant
+        ),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 4.dp else 0.dp
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Icon with gradient background
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .background(item.color.copy(alpha = 0.15f), CircleShape),
+                    .size(44.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                item.color.copy(alpha = 0.2f),
+                                item.color.copy(alpha = 0.05f)
+                            ),
+                            center = Offset(20f, 20f),
+                            radius = 30f
+                        ),
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = item.icon,
+                    imageVector = if (isSelected && item.iconOutline != null)
+                        item.iconOutline
+                    else
+                        item.icon,
                     contentDescription = null,
                     tint = item.color,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(10.dp))
+
+            Spacer(modifier = Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    item.title,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        item.title,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    item.badge?.let { badge ->
+                        Badge(
+                            containerColor = item.color,
+                            modifier = Modifier
+                        ) {
+                            Text(
+                                badge,
+                                fontSize = 9.sp,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
                 Text(
                     item.subtitle,
-                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+    }
+
+    // Press animation handling
+    LaunchedEffect(pressed) {
+        if (pressed) {
+            delay(100)
+            pressed = false
         }
     }
 }
