@@ -25,6 +25,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.rudra.lifeledge.ui.screens.loan.LoanScreen
+import com.rudra.lifeledge.ui.screens.loan.EmiScreen
 import com.rudra.lifeledge.ui.screens.placeholder.*
 import com.rudra.lifeledge.ui.screens.analytics.AnalyticsScreen
 import com.rudra.lifeledge.ui.screens.achievements.AchievementsScreen

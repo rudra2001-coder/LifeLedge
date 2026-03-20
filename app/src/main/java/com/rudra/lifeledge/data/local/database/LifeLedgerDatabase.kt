@@ -7,7 +7,9 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.rudra.lifeledge.data.local.converters.Converters
 import com.rudra.lifeledge.data.local.dao.*
+import com.rudra.lifeledge.data.local.dao.JournalLineDao
 import com.rudra.lifeledge.data.local.entity.*
+import com.rudra.lifeledge.data.local.entity.JournalLine
 
 @Database(
     entities = [
@@ -15,7 +17,7 @@ import com.rudra.lifeledge.data.local.entity.*
         Account::class, Transaction::class, Category::class, RecurringTransaction::class,
         Loan::class, EMIPayment::class, CreditCard::class,
         Habit::class, HabitCompletion::class,
-        JournalEntry::class, DailyLog::class,
+        JournalEntry::class, JournalLine::class, DailyLog::class,
         Goal::class, HealthMetric::class,
         Setting::class, BackupLog::class, SmartAdviceLog::class,
         SavingGoal::class, SavingTransaction::class,
@@ -24,7 +26,7 @@ import com.rudra.lifeledge.data.local.entity.*
         MonthlySummaryEntity::class, DailySummaryEntity::class, CategorySummaryEntity::class,
         AccountSummaryEntity::class, BehaviorPatternEntity::class, SpendingStreakEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -43,6 +45,7 @@ abstract class LifeLedgerDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
     abstract fun habitCompletionDao(): HabitCompletionDao
     abstract fun journalEntryDao(): JournalEntryDao
+    abstract fun journalLineDao(): JournalLineDao
     abstract fun dailyLogDao(): DailyLogDao
     abstract fun goalDao(): GoalDao
     abstract fun healthMetricDao(): HealthMetricDao
